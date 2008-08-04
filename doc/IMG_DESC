@@ -1,0 +1,13 @@
+It's a paletized format. Not really standard, for example 64000bytes
+img files are purely raw data, 320x200 bytes, no description of the size,
+no description of the colors. You have to pick yourself the palette. Some
+other .img files include some information in a 12 bytes header which goes :
+
+2bytes		???		0xC0 (192), 0
+2bytes		???		1, 0
+2bytes		width		125
+2bytes		height		198
+2bytes		??		0
+1byte		???		0xAE (174), 0
+1byte		??		0x60 (96), 0xFA (250)
+

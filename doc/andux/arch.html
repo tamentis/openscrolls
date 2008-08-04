@@ -1,0 +1,198 @@
+<html><head><title></title>
+
+</head><body>
+
+<h1>ARCH3D.BSA</h1>
+
+The file is a typical BSA file with a 0x0200 directory of 0x280B records (10251) at the end. 
+Each BSA record contains the information for one 3D object.
+
+	<h2 id="toc">Contents</h2>
+<ul>
+	<li><a href="#objrec">3D Object Records</a></li>
+	<li><a href="#objheader">3D Object Header</a></li>
+	<li><a href="#planedata">Plane Data Record Section</a></li>
+</ul>
+
+
+<h2 id="objrec">3D Object Records</h2>
+
+<p>The following description has been tested on all the 3D Objects contained
+in Arch3D.BSA and appears to be sound.  There are two records which have 
+some problems (offsets 0x008B8D58 and 0x013274C6) and don't follow the
+known format of the other 10249 records.  They have a large section of
+repeating bytes just after the 3D object header and their Data2 section
+is not the standard.  These records could very well be corrupt or not 
+used or of a special, undiscovered, format.</p>
+
+<p>Each BSA record contains the information for one 3D object. Note that each
+record appears to be _similar_ to the .3D file format used in Battlespire. 
+One difference is that here the .3D files are contained in one big file, 
+while in Battlespire they are in individual files. Records range from 212
+to 81394 bytes in size.  The basic record layout is as follows:</p>
+<pre>
+	3D Object Header (64 Bytes)
+		Always the first 64 bytes in the record.  See the header
+		section below for detail format and information.
+	Unknown Data		
+		Two files have strange sections of repeating bytes between
+		the record header and point data. Usually, though, the point
+		data follows starting at byte 64.
+	Point Data
+		Contains the point data as given by the number of points 
+		previously read.  Each point is composed of 3 signed long
+		integers, (X, Y, Z) for 12 bytes per point. Use the PointOffset
+		variable in the header to get the start of the point data.
+	PlaneData
+		See the Plane Data Record section below.  There is one record
+		for each plane given by the PlaneCount variable.  Use the
+		PlaneOffset variable in the header to get the start of the
+		plane data.
+	Normal? Data Section
+		Appears to have XYZ 12 bytes triplets again with the number of
+		records equal to the number of planes.  This appears to be the
+		normals of the planes but not entire confirmed. The offset to
+		this data is also in the header.
+	Offset1 Data Section
+		This section is usually all 0x00's, but the size indicates it
+		should have a record size of 24 bytes with the number of
+		records equal to the number of planes. The offset to the start
+		of this data is also in the header.
+	Offset2 Data Section
+		The number of records in this section is given in the object
+		header.	The basic format of each record is as follows:
+		   [Bytes 0-15]		long Numbers[4];
+			Looks like 3 or 4 coordinates.
+		   [Bytes 16-17]	short NumSubRecords;
+			Gives the number of 6 bytes sub-records which follow.
+		   [Bytes 18...]	char SubRecords[6][]
+			The variable number of sub record data.
+		This data finishes off the object record data.  The offset
+		to the start of this data and the number of records the section
+		contains is in the object header.
+</pre>
+  Note that while most 3D objects have this format, some have the sections 
+  mixed up slightly (i.e., the data1 section comes before the points).  One
+  should use the offset information in the object header to determine where
+  each section starts.
+
+
+<h2 id="objheader">3D Object Header</h2>
+
+  The header is always the first 64 bytes in a 3D object record.
+<pre>
+  	[Bytes 0-3]	char Version[4] = "v2.7"; (or "v2.6" or "v2.5")
+		Appears to be a version number or record identifier. Most of
+		the records have v2.7, though 135 have v2.6 and 9 have v2.5.
+		Note that the trailing NULL character is not included.  It is
+		currently unknown what differences the various version records
+		have, although it appears to be minor.
+	[Bytes 4-7]	long PointCount;
+		Gives the number of points contained in the 3D object.  Each
+		point consists of 3 long integers (X, Y, Z) for a total of 
+		12 bytes per point.  Point counts range from 3 to 1010.
+	[Bytes 8-11]	long PlaneCount;
+		This gives the number of planes/faces in the 3D object. Plane
+		counts range from 1 to 712.
+	[Byte  12-15]	long Unknown1;
+		Has a wide range of values, generally non-zero.
+	[Bytes 16-23]   char NullValue1[8];
+		Always 0x00 bytes (confirmed).
+	[Bytes 24-27]	long Data1Offset;
+	[Bytes 28-31]	long Data2Offset;
+		Appear to be offsets from the start of an object record
+		Offset1 is always non-zero and Offset2 is zero only 3 times
+		(confirmed).
+	[Bytes 32-35]	long NumData2Records;
+		Usually non-zero and less than 0x0010 (maximum around 212).
+		Appears to be the number of records pointed to by Offset2.
+	[Bytes 36-37]	short Unknown3;
+		A wide range of repeating values.
+	[Bytes 38-39]	short Unknown4;
+		Usually 0x0000 or less than 0x0010 (maximum of 0x0068).
+	[Bytes 40-43]	long NullValue3;
+	[Bytes 44-47]	long NullValue4;
+		Always 0x00000000 (confirmed).
+	[Bytes 48-51]	long PointOffset;
+		Almost always 0x00000040 but also takes on the values
+			0x00000000 (strange?)
+			0x00000178
+			0x00001510
+			0x000017F8
+		The offset from the start of the object record to the start of
+		the point data.
+	[Bytes 52-55]	long NormalOffset;
+		Offset from the record origin to the next byte after the end of
+		the plane data. Always non-zero (confirmed).
+	[Bytes 56-59]	long Unknown6;
+		Always 0x00000000 except for 19 records which it has a number
+		of values from 0x000000F4 to 0x000001FC. Possibly offset?
+	[Bytes 60-63]   long PlaneOffset;
+		Offset from start of object to the plane/face data.
+</pre>	
+
+<h2 id="planedata">Plane Data Record Section</h2>
+
+  This is a sub-record of the 3D Object Record. Each plane record is 
+  (8 + (PlanePointCount*8)) bytes in size. Some of the variables are bit
+  fields written out as [Bytes 2-3.1] which would be a 9 bit field.
+<pre>
+	[Byte 0]	unsigned char PlanePointCount; (8 bits)
+		The number of points which makes up the plane. This value
+		ranges from 0x00 to 0x18 (24).
+	[Byte 1]	char Unknown1;	(8 bits)
+		Usually 0x00 for most plane records (about 2% are non-zero).
+		Values range from 0x00 to 0xFF although most are repeating 
+		values in the 0x00 to 0x40 range.
+	[Bytes 2-2.6]	unsigned short SubImageIndex;	(7 bits)
+		The subimage index in the texture file (0 to 127).
+	[Bytes 2.7-3.7]	unsigned short TextureIndex;	(9 bits)
+		The texture file index (0 to 474). 
+	[Bytes 4-7] 	long Unknown4;
+		Almost always 0x00000000, 0x00010000, 0x00010001, or 0x00010002 
+		and rarely a wide range of other values.  Probably two short 
+		values.
+	[Bytes 8...]	PlanePointSubRecords
+		For each point in the PlanePointCount variable, there is 8 bytes
+		of data.
+			[Bytes 0-3] 	long PointOffset;
+			   v2.7:This gives the offset of the point used from the
+				beginning of the point data. In other words,
+				divide by 12 to get the point index. This is 
+				confirmed for all v2.7 objects except for one
+				which is strange (offset 0x013274C6).
+			   v2.6:Appears to be the same as v2.7.
+			   v2.5:The point offset is a multiple of 4 and appears
+				to be the offset to the actual XYZ coordinate
+				of the point.  To get the point index, divide
+				by 4 (unconfirmed).
+			[Bytes 4-5]	short TextureU;
+			[Bytes 6-7]	short TextureV;
+				Specifies the texture UV coordinates for the
+				point.  See Appendix E for a complete description
+				of how Daggerfall handles UV texture coordinates.
+</pre>
+
+<h2 id="objdir">Object Directory</h2>
+
+  The object directory is at the end of the file and gives the record lengths
+  of all the 3D object records (the usual 0x0200 type BSA directory map).
+  There is also a long value associated with each record which, for most
+  entries, is unique (all but 25 of 10251 records have unique values in the
+  directory).
+
+
+<h2 id="special">Special Objects</h2>
+
+  The following list of objects in the ARCH3D file have special mention.
+<dl>
+<dt>Object 4722 (0x8B8D58)</dt>
+<dd>		This v2.6 3D object has a truncated, or different, Data2
+		section which does not conform with the known format.</dd>
+<dt>Object 7614 (0x13274C6)</dt>
+<dd>		This v2.7 object has an invalid offset to the Data2
+		section (it points to the middle of the data1 section).</ff>
+</dl>
+
+</body></html>
+

@@ -1,0 +1,528 @@
+<html><head><title>Daggerfall's BSA File Formats</title>
+
+</head><body><center>
+<h1>Daggerfall's BSA File Formats</h1>
+by <a href="mailto:dave@uesp.net">Dave Humphrey</a><br />
+6 April 2002</center>
+
+<p>This is a description of the format of the various .BSA files found in the
+ARENA2 directory of Elder Scrolls:Daggerfall by Bethesda.  The information
+here is not complete or 100% percent accurate, although the basic formats
+appears to be well understood.  For more information, corrections, or 
+comments, e-mail me at the above address.  Check out 
+
+<a href="http://www.uesp.net/dagger/">The UESP: Daggerfall</a>
+
+for the latest version of this document and other DF goodies.</p>
+
+
+	<h2 id="contrib">Contributors</h2>
+
+Significant contributors to these formats include:<ul>
+<li>Michael (subproperty@hotmail.com)<ul>
+	<li>Dungeon Pre/Postrecords</li>
+	<li>Location types</li>
+	<li>BLOCKS.BSA RDB format</li>
+</ul></li>
+</ul>
+
+
+	<h2 id="toc">Contents</h2>
+<ul>
+<li><a href="#gen">General BSA Files</a><ul>
+	<li><a href="#layout">General File Layout</a></li>
+	<li><a href="#header">BSA Header</a></li>
+	<li><a href="#records">BSA Records</a></li>
+	<li><a href="#dir">BSA Directory</a></li>
+	<li><a href="#x100">BSA 0x0100 Directory</a></li>
+	<li><a href="#x200">BSA 0x0200 Directory</a></li>
+</ul></li>
+<li><a href="maps.html">MAPS.BSA</a></li>
+
+<li><a href="arch.html">ARCH3D.BSA</a></li>
+
+<li><a href="blocks.html">BLOCKS.BSA</a></li>
+
+<li><a href="#regno">Appendix A - REGION NUMBERS</a></li>
+<li><a href="#loctype">Appendix B - LOCATION TYPES</a></li>
+<li><a href="#bindices">Appendix C - BLOCK INDICES</a></li>
+<li><a href="#limits">Appendix D - COORDINATE LIMITS</a></li>
+<li><a href="#uv">Appendix E - UV TEXTURE COORDINATES</a></li>
+<li><a href="#land">Appendix E - Land Creation Notes</a></li>
+</ul>
+
+	<h2 id="gen">General BSA Files</h2>
+
+<p>There are five BSA files in Daggerfall's ARENA2 directory (ARCH3D, MAPS,
+MONSTER, MIDI, and BLOCKS). Although they contain different data, their
+overall structure is the same. This format has been derived from all these
+five files.  The following description appears to be complete.</p>
+
+<div style="margin: 0px 1em;">
+	<h3 id="layout">General File Layout</h3>
+<ul>
+	<li>BSA Header</li> 	
+	<li>...BSA Records...</li>
+	<li>BSA Directory</li>
+</ul>
+
+
+	<h3 id="header">BSA Header</h3>
+
+This is the first 4 bytes found at the start of a BSA file and gives
+information about the BSA directory at the end of the file.
+<pre>
+	[Bytes 0-1] short DirectoryCount;
+		Gives the number of entries in the directory at the end of the 
+		file.
+	[Bytes 2-3] short DirectoryType; 
+		Gives the type of directory at the end of the BSA file (See
+		BSA Directory below).
+			0x0100 = Directory has records of 18 bytes in size
+				 consisting of a 14 byte filename and a long
+				 record length.
+			0x0200 = Directory has records of 8 bytes in size
+				 consisting of long ID and a long record size.
+</pre>
+
+	<h3 id="records">BSA Records</h3>
+
+This data will depend on the actual BSA file.  The basic contents for the
+five known BSA files are as follows:
+<dl>
+<dt>ARCH3D</dt>
+	<dd>3D Object Information</dd>
+<dt>BLOCKS</dt>
+	<dd>Dungeon/town block information</dd>
+<dt>MAPS</dt>
+	<dd>Location information (towns, dungeon, houses, temples, etc...)</dd>
+<dt>MONSTER</dt>
+	<dd>Monster data (no images)</dd>
+<dt>MIDI</dt>
+	<dd>HMI formatted music</dd>
+</dl>
+
+	<h3 id="dir">BSA Directory</h3>
+
+<p>The directory contains the information needed to access the various data
+records in the BSA file.  The contents of each record depends on the BSA
+file.  In general, the directory gives an identification number/string and
+a record length for each record.  There are two known types of directories
+identified by the DirectoryType bytes in the BSA header (0x0100 and 0x0200).</p>
+
+<div style="margin: 0px 1em;">
+		<h4 id="x100">BSA 0x0100 Directory (Name)</h3>
+
+The 0x0100 type directory consists of records 18 bytes in size and give a
+record size and 13 byte name for each BSA record.
+<pre>	
+	[Bytes 0-13] char FileName[14];
+		The filename which identifies this data section.  Filenames
+		are in the usual DOS 8.3 format.
+	[Bytes 14-17] long DataSize;
+		The size of the data in bytes.  The first record starts at 
+		offset 4 in the file, ignoring the 4 bytes of the BSA Header.
+		The subsequent section offsets can be calculated from this.
+</pre>
+
+		<h4 id="x200">BSA 0x0200 Directory (Number)</h3>
+
+The 0x0200 type directory consists of records 8 bytes in size and give a
+record size and long identifier for each BSA record.
+<pre>
+	[Bytes 0-3] long RecordID;
+		A long number which assumbly identifies the record somehow.
+	[Bytes 4-7] long DataSize;
+		The size of the data in bytes.  The first entry starts at 
+		offset 4 in the file, ignoring the 4 bytes of the BSA Header.
+		The subsequent section offsets can be calculated from this.
+</pre>
+</div></div>
+
+<a href="#toc">Contents</a>
+<hr />
+
+<h2 id="regno">Appendix A - REGION NUMBERS</h2>
+
+The following is a list of region numbers which is used to access the region
+map data in the Maps.BSA file (and possibly elsewhere). Note that some of the
+names are not used in the game (marked by an *).
+<pre>
+	00 = Alik'r Desert
+	01 = Dragontail Mountains
+	02 = Glenpoint Foothills*
+	03 = Daggerfall Bluffs*
+ 	04 = Yeorth Burrowland*
+	05 = Dwynnen
+	06 = Ravennian Forest*
+	07 = Devilrock*
+	08 = Malekna Forest*
+	09 = Isle of Balfiera
+	10 = Bantha*
+	11 = Dak'fron
+	12 = Islands in the Western Iliac Bay*
+	13 = Tamarilyn Point*
+	14 = Lainlyn Cliffs*
+	15 = Bjoulsae River*
+	16 = Wrothgarian Mountains
+	17 = Daggerfall
+	18 = Glenpoint
+	19 = Betony
+	20 = Sentinel
+	21 = Anticlere
+	22 = Lainlyn
+	23 = Wayrest
+	24 = Gen Tem High Rock village*
+	25 = Gen Rai Hammerfell village*
+	26 = Orsinium Area
+	27 = Skeffington Wood*
+	28 = Hammerfell bay coast*
+	29 = Hammerfell sea coast*
+	30 = High Rock bay coast*
+	31 = High Rock sea coast
+	32 = Northmoor
+	33 = Menevia
+	34 = Alcaire
+	35 = Koegria
+	36 = Bhoriane
+	37 = Kambria
+	38 = Phrygias
+	39 = Urvaius
+	40 = Ykalon
+	41 = Daenia
+	42 = Shalgora
+	43 = Abibon-Gora
+	44 = Kairou
+	45 = Pothago
+	46 = Myrkwasa
+	47 = Ayasofya
+	48 = Tigonus
+	49 = Kozanset
+	50 = Satakalaam
+	51 = Totambu
+	52 = Mournoth
+	53 = Ephesus
+	54 = Santaki
+	55 = Antiphyllos
+	56 = Bergama
+	57 = Gavaudon
+	58 = Tulune
+	59 = Glenumbra Moors
+	60 = Ilessan Hills
+	61 = Cybiades
+</pre>
+
+<h2 id="loctype">Appendix B - LOCATION TYPES</h2>
+
+  The following is a list of location types used in the map tables. The list is
+  not yet exhaustive.
+
+  <h3>Dungeons</h3>
+<pre>
+	0x84 (132) = Orange,		Major Dungeon
+	0x87 (135) = Dark Orange,	Fortress (Large Dungeon)
+	0x8A (138) = Medium Red,	Ruins (Small Dungeon)
+	0x8C (140) = Dark Red,		Graveyard
+	0x8D (141) = Black,		Covens
+</pre>
+  <h3>Towns</h3>
+<pre>
+	0xA0 (160) = Light Rose, 	Large Town
+	0xA1 (161) = Medium Rose,	Medium Town
+	0xA2 (162) = Medium Rose,	Small Town
+	0xA3 (163) = Medium Rose,	Farmstead
+	0xA6 (166) = Dark Rose,		Tavern
+</pre>
+  <h3>Temples</h3>
+<pre>
+	0xA5 (165) = Light Blue,	Temple
+	0xA9 (169) = Dark Blue,		Shrine
+</pre>
+  <h3>Homes</h3>
+<pre>
+	0xA8 (168) = Light Pink,	Palace / Manor
+	0xAB (171) = Dark Pink,		Shack
+	0xAC (172) = Dark Pink/Red	Graveyard (same as 0x8C?)
+</pre>
+
+<h2 id="bindices">Appendix C - BLOCK INDICES</h2>
+
+  At offset 0x1BD97F in v2.13 FALL.EXE, there's a listing of 45 RMB files in
+  the format "TVRN????.RMB" to probably be used with a printf() type function
+  to generate the appropiate entry to load from BLOCKS.BSA. The filename list
+  is as follows (13 bytes per record, 8.3 filenames, terminated by a NULL):
+<pre>
+	Index     Filename	 File Chars	File Index	Description
+	-----  --------------   ------------	----------   ------------------
+	  0	TVRN????.RMB   	A/B/G, L/M/S      0-10		Taverns
+	  1	GENR????.RMB	A/B/G, L/M/S      0-3       	General Stores
+ 	  2	RESI????.RMB	A/B/G, L/M/S      0-10		Residences
+	  3	WEAP????.RMB    A/B/G, L/M/S      0-3		Weaponsmiths
+ 	  4	ARMR????.RMB	A/B/G, L/M/S      0-3		Armourers
+	  5	ALCH????.RMB    A/B/G, L/M/S      0-3		Alchemists
+	  6	BANK????.RMB    A/B/G, L/M/S      0-3		Banks		
+	  7	BOOK????.RMB	A/B/G, L/M/S      0-3		Bookstores
+	  8	CLOT????.RMB	A/B/G, L/M/S      0-3		Clothing Stores
+          9	FURN????.RMB	A/B/G, L/M/S      0-3		Furniture Stores
+	 10	GEMS????.RMB	A/B/G, L/M/S      0-3		Jewelers
+	 11	LIBR????.RMB	A/B/G, L/M/S      0-3		Libraries
+	 12	PAWN????.RMB	A/B/G, L/M/S      0-3		Pawnshops
+	 13	TEMP????.RMB	   AA, GG        00-H0		Temples	
+	 14	TEMP????.RMB	   AA, GG        00-H0		Temples	
+	 15	PALA????.RMB    A/B/G, A	  0-4		Knight Guilds?
+	 16	FARM????.RMB	     AA           0-9		Farms
+	 17	DUNG????.RMB	     AA           0-18		Dungeons
+	 18	CAST????.RMB         AA           0-34		Unknown
+	 19	MANR????.RMB	A/B/G, L/M/S      0-3		Manors?
+	 20	SHRI????.RMB         AA		  0		Shrines?
+	 21	RUIN????.RMB	     AA           0-28	 	Ruins?
+	 22	SHCK????.RMB	     AA		  0		Unknown
+	 23	GRVE????.RMB	    A, L/M/S	  0-42		Unknown
+	 24	FILL????.RMB	     AA		  0-15		Unknown
+	 25	KRAV????.RMB	A/B/G, L	  0-1		Unknown
+	 26	KDRA????.RMB	A/B/G, L	  0-1		Unknown
+	 27	KOWL????.RMB	A/B/G, L	  0-1		Unknown
+	 28	KMOO????.RMB	A/B/G, L	  0-1		Unknown
+	 29	KCAN????.RMB	     -		   -		No Files	
+	 30	KFLA????.RMB	A/B/G, L	  0-1		Unknown
+	 31	KHOR????.RMB	A/B/G, L	  0-1		Unknown
+	 32	KROS????.RMB	A/B/G, L	  0-1		Unknown
+	 33	KWHE????.RMB	A/B/G, L	  0-1		Unknown
+	 34	KSCA????.RMB	A/B/G, L	  0-1		Unknown
+	 35	KHAW????.RMB	A/B/G, L	  0-1		Unknown
+	 36	MAGE????.RMB	A/B/G, A	  0-14		Mage Guilds
+	 37	THIE????.RMB	    A, L/M/S	   0		Thief Guilds
+	 38	DARK????.RMB	     AA	   	  0-2		Dark Brotherhood
+	 39	FIGH????.RMB    A/B/G, A/L/M/S	  0-2		Fighter Guilds
+ 	 40	CUST????.RMB	  A/G, A	  0-56		Custom?
+	 41	WALL????.RMB	     AA	  	  0-11		Walls?
+	 42	MARK????.RMB	A/B/G, A/L/M/S	  0-1		Unknown
+	 43	SHIP????.RMB	     AA	   	  0-1		Ship
+	 44	WITC????.RMB	     AA	  	  0-13		Witch Covens
+</pre>
+<p>File chars fill in the first two ?? and the file index fills in the last two
+  ??.   A value of "A/B/G, L/M/S" means the file characters could be one of
+  AL, AM, AS, BL, BM, BS, GL, GM, or GS.  The descriptions given are a rough
+  guess based on the RMB file name. The known values for the file chars as
+  given in location post records in MAPS.BSA are shown below.</p>
+<pre>
+	Value	File Char
+	----	--------
+	0x00	  AA
+	0x01	  AA
+	0x02	  AA
+	0x07	  AA
+	0x0F	  DA
+	0x11	  DA
+	0x13      DA
+	0x15      DA
+	0x1F	  DA
+	0x2F	  AL
+	0x3F	  DL
+	0x4F	  AM
+	0x5F	  DM
+	0x6F	  AS
+	0x7F	  DS
+	0x8F	  AA
+	0x9F      DA
+</pre>
+  The 'D' values are strange in that there are no RMB files that have a D in
+  the fifth character position.
+
+
+<h2 id="limits">Appendix D - COORDINATE LIMITS</h2>
+
+<p>Coordinates are roughly in centimeters as given in the game by using the
+  ' cheat key for quest info. Coordinates are 256 times smaller than
+  the coordinates used for the 3D objects.</p>
+<pre>
+	X = 0? (As far West as you can go)
+	X = 32,400,000 (As far East as you can go on the map)
+	Z = 2,000,000 (As far South as you can go on the map)
+	Z = 16,367,616 (As far North as you can go)
+</pre>
+
+<h2 id="uv">Appendix E - UV TEXTURE COORDINATES</h2>
+
+  Note: Much of this information orginated from Craig (cpeterson@ematic.com)
+  and Gavin (interkarma@m0use.net, http://m0use.net/~interkarma).
+
+<p>Daggerfall handles UV coordinates a little differently than most 3D programs
+  and require some explanation.  The TextureU and TextureV in the plane sub-
+  records hold the texture coordinate data for the face point but, depending
+  on the face, the UV coordinates have different meaning:</p>
+<pre>
+	Point 1: The actual DfUV coordinate for that point.
+	Point 2: The change in DfUV coordiantes relative to Point 0.  To get
+		 the absolute DfUV values you must add Point 1s to Point 0.
+	Point 3: The change in DfUV coordiantes relative to Point 1.  To get
+		 the absolute DfUV values you must add Point 2s to Point 1
+		 and 0.
+	Point 4: For faces with more than 3 points, this point is the absolute
+		 DF UV coordinate for that point.  Tests seem to indicate,
+		 though, that the game does not use this data.
+	Point 5+:UV coordinates should be all 0 and are not used.
+</pre>
+<p>Since all points on the face after the 4th have no UV values, this indicates
+  that we must find a relationship between the XYZ point and the UV coordinate,
+  which is detailed below.</p>
+
+<p>The units of DfUV texture coordinates are relative to the size of the texture
+  image.  A value of 1024 represents 64 pixels of image data. The conversion
+  between DfUV and standard UV coordinates is detailed below.</p>
+
+  
+<h3>CONVERTING XYZ to UV Coordinates</h3>
+
+<p>Unfortunately, as of this point, there is no simple way to compute the UV
+  coordinate of a point from its XYZ location, but the best current method is
+  explained as follows.  We first assume that the relationship is linear and
+  of the form:</p>
+<pre>
+		U = aX + bY + cZ + d
+		V = eX + fY + gZ + h
+</pre>
+Since all faces have at least 3 points (confirmed) and we know the UV
+  coordinates for the first 4 points, we should be able to solve for the 
+  parameters a...h. We assume d and h are both 0 for this case, though we
+  will use them later.  We could solve for the 6 unknowns explicitly but we
+  would have to take into account which points have similar XYZ coordinates 
+  which becomes messy (we can't divide by X1-X2 if they are equal).  Instead, 
+  we will take the similar route of expressing the equations in matrix form
+  and solving the matrix equation (which may turn out to be just as complex).
+  The matrix equation for U is of the form:
+<pre>
+	{ X1 Y1 Z1 }   { a }   { U1 }
+	{ X2 Y2 Z2 } * { b } = { U2 }
+	{ X3 Y3 Z3 }   { c }   { U3 }
+</pre>
+  where X1,Y1,Z1,U1 and the coordinates of the first points.  To solve for
+  the unknown matrix {a..c} we simple need the inverse of the {X1...Z3} matrix
+  which will be multiplied to left of the {U1..U3} matrix.  Using the Jacobian
+  method of matrix inversion we can find the solution to be:
+<pre>
+		/* Compute the determinant of the XYZ matrix */
+	Determinant = X1*Y2*Z3 + Y1*Z2*X3 + Z1*X2*Y3 - X3*Y2*Z1 - X2*Y1*Z3 - X1*Y3*Z2
+	
+		/* Compute the inverse of the XYZ matrix */
+	Xi1 = ( Y2*Z3 - Y3*Z2) / Determinant
+	Xi2 = (-X2*Z3 + X3*Z2) / Determinant
+	Xi3 = ( X2*Y3 - X3*Y2) / Determinant
+
+	Yi1 = (-Y1*Z3 + Y3*Z1) / Determinant
+	Yi2 = ( X1*Z3 - X3*Z1) / Determinant
+	Yi3 = (-X1*Y3 + X3*Y1) / Determinant
+
+	Zi1 = ( Y1*Z2 - Y2*Z1) / Determinant
+	Zi2 = (-X1*Z2 + X2*Z1) / Determinant
+	Zi3 = ( X1*Y2 - X2*Y1) / Determinant
+
+		/* Compute the DfUV conversion parameters */
+  	a = U1*Xi1 + U2*Yi1 + U3*Zi1
+	b = U1*Xi2 + U2*Yi2 + U3*Zi2
+	c = U1*Xi3 + U2*Yi3 + U3*Zi3
+	d = 0
+
+	e = V1*Xi1 + V2*Yi1 + V3*Zi1
+	f = V1*Xi2 + V2*Yi2 + V3*Zi2
+	g = V1*Xi3 + V2*Yi3 + V3*Zi3
+	h = 0
+</pre>
+  This works for more than 90% of the 10251 objects in the ARCH3D.BSA files,
+  but it fails when the Determinant above is 0.  This usually occurs when all
+  of the points on a face lie in the X, Y, or Z plane (ie, the X/Y/Z coordinates 
+  are identical for all points in the face).  In these cases we must use the d 
+  and h parameters which were previously assumed to be zero. For example, in the
+  case where all Y's are equal, the equations turn into:
+<pre>
+	U = aX + cZ + d
+	V = eX + gZ + h
+</pre>
+  as b and f are irrelevant due to Y=0.  The matrix solution then becomes:
+<pre>
+	{ X1 1 Z1 }   { a }   { U1 }
+	{ X2 1 Z2 } * { d } = { U2 }
+	{ X3 1 Z3 }   { c }   { U3 }
+
+	Determinant = X1*Z3 + Z2*X3 + Z1*X2 - Z1*X3 - X2*Z3 - X1*Z2
+
+	Xi1 = ( Z3 - Z2) / Determinant
+	Xi2 = (-X2*Z3 + X3*Z2) / Determinant
+	Xi3 = ( X2 - X3) / Determinant
+
+	Yi1 = (-Z3 + Z1) / Determinant
+	Yi2 = ( X1*Z3 - X3*Z1) / Determinant
+	Yi3 = (-X1 + X3) / Determinant
+
+	Zi1 = ( Z2 - Z1) / Determinant
+	Zi2 = (-X1*Z2 + X2*Z1) / Determinant
+	Zi3 = ( X1 - X2) / Determinant
+	
+	a = U1*Xi1 + U2*Yi1 + U3*Zi1
+	b = 0
+	c = U1*Xi2 + U2*Yi3 + U3*Zi3
+	d = U1*Xi2 + U2*Yi2 + U3*Zi2
+
+	e = V1*Xi1 + V2*Yi1 + V3*Zi1
+	f = 0
+	g = V1*Xi3 + V2*Yi3 + V3*Zi3
+	h = V1*Xi2 + V2*Yi2 + V3*Zi2
+</pre>
+  using similar equations for the case of constant X and Z, we can successfully
+  convert XYZ coordinates to DfUV texture coordinates for about 97% of the 
+  Arch3D objects.  This still leaves arounds 270 objects where the XYZ
+  determinant is zero.  All remaining objects can be solved by the following
+  rules:<ul>
+
+	<li>Ignore faces with 4 or fewer points as the face contains the direct
+	  UV information for the first 4 points.</li>
+	<li>Ignore faces with solid colors (textures 0 and 1).</li>
+	<li>If the above cases fail to find a valid solution, attempt the remaining
+	  cases for a XZ, XY, and YZ solutions (one should work).  This is due
+	  to some faces having similar/identical X/Z coordinates.</li>
+  </ul>	
+  To convert from DfUV coordinates (computed above) into 'normal' UV, the
+  following equations can be used:
+<pre>
+	NU = (aX + bY + cZ + d) / (16 * TextureWidth)
+	NV = (eX + fY + gZ + h) / (16 * TextureHeight)
+</pre>
+<p>Normal UV coordinates are based on a value of 1.0 equaling the texture
+  width or height and are usually used in 3D modelling programs.  These
+  equations appear to give the correct texture coordinates for most 3D
+  objects.</p>
+
+
+<h2 id="land">Appendix F - LAND CREATION NOTES</h2>
+
+<p>Steps to create a map 'block' or pixel.  The entire DF map is composed of 
+  1000x500 land pixels, each of which is further divided into 5x5 subpixels as
+  per the WOODS.WLD data.  Each pixel can contain only one town or dungeon and
+  has a given terrain type, texture, and roughness.</p>
+<pre>
+    == All Pixels ==
+	1. Generate land pixel from Woods.WLD
+	2. Smooth edges with adajacent pixels
+	3. Add flats to landscape (trees, bushes, rocks, etc...)
+	4. Check for a location within the pixel.  Currently, the only known
+	   way to do this is to check all the locations within the current
+	   region.  It may be indicated by the first two bytes in a pixel
+	   record in WOODS.WLD, but this is not yet confirmed
+		A. Load just the maptable for the region, if not loaded
+		B. Check all locations or a pixel-coordinate match
+		C. Stop search on first match
+    == Location Only Pixels ==
+	5. Load entire location from MAPS.BSA
+	6. Smooth appropiate land for location. How to get width/height for
+	   location or just smooth entire pixel? Smoothing should not be
+	   absolute, there should still be some random 'ripple'.  If the
+ 	   entire pixel is to be smoothed, this could be done in Step 1.
+	6. Parse through the object list in the map record (post records)
+	   	A. Load appropiate Blocks.BSA record.
+		B. Parse Blocks.BSA record, create block D3D frame
+			i.  Load Arch3D.BSA object
+			ii. Add object to frame at required position
+		C. Add block frame to land pixel frame at required position
+</pre>
+</body></html>
+

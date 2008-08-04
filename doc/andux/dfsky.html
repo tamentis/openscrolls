@@ -1,0 +1,93 @@
+<html><head><title>Daggerfall SKY File Format</title>
+</head><body>
+<h1>Daggerfall SKY File Format</h1>
+March 7, 2004
+
+<p>This is the format for the SKY##.DAT files that come with TES: 
+Daggerfall. They contain the backdrop images and palettes used in 
+the outdoor game environment.</p>
+					
+
+<h2 id="overall">Overall SKY Format</h2>
+
+The overall file is divided into three sections:
+<pre>
+	Bytes      1 -   24832	<a href="#pals">Main palettes</a>
+	Bytes  24833 -  549120	<a href="#fadein">Fade-in lookup tables</a>
+	Bytes 549121 - 7758080	<a href="#images">Sky images</a>
+</pre>
+
+
+<h2 id="pals">Main Palette Section</h2>
+
+<p>The palette section consists of 32 records. The format of each record 
+is identical to that used by COL files:</p>
+<pre>
+	Bytes  1 -   4	INT32	File size (always 776)
+	Bytes  5 -   6	INT16	Format ID (always 0xB123)
+	Bytes  7 -   8	INT16	Format version (always 0)
+	Bytes  9 - 776	CHARS	256-color, 24-bit RGB palette
+</pre>
+
+<p>Note that each palette is a full 24-bit palette, with values in the range 0..255 
+for every color channel; no bit-shift or multiplication ops are necessary.</p>
+
+
+<h2 id="fadein">Object Fade-In Lookup Tables</h2>
+
+<p>These lookup tables are used when "fading in" objects from beyond 
+the edge of the player's visibility range. There are 32 sets (one 
+for each palette) of 64 tables of 256 bytes each.</p>
+
+<p>Rather than explain it in plain English, I am going to throw some 
+heavily-commented pseudocode at you:</p>
+<pre>
+	for each visible surface do
+	  Z = SomeFunctionOf(SurfacePos, PlayerSightRange)
+	  /* Z = surface's distance from the edge of the 
+	   * player's visibility range. Z of 0 means the 
+	   * surface is right at the edge. Z of 63 means 
+	   * the surface is not faded at all. */
+	  for each pixel do
+	    PixelColor = Shifted(PaletteNumber, Z, PixelColor)
+	    /* Shifted(Set, Table, Color) effectively returns 
+	     * the value of the byte at (zero-based) offset
+	     * (24832 + (Set * 16384) + (Table * 256) + Color)
+	     * in the current SKY##.DAT file. */
+	  loop
+	loop
+</pre>
+
+
+<h2 id="images">Sky Images</h2>
+
+<p>There are 64 images in the file. Each image is 512 by 220 pixels 
+in size, and is stored in uncompressed 8-bit-per-pixel format. 
+The images are divided into two sets:</p>
+<pre>
+	Images  0 - 31	Series with no sun.
+	Images 32 - 63	Series with sun.
+</pre>
+<p>The images in each set are assigned one of the 32 palette records 
+in ascending order (i.e., the first image in each set uses the first 
+palette record, the second one uses the second palette, and so on).</p>
+
+<p>Each image is used for only half the sky; initially, images from the 
+first series (0-31) are assigned to the western sky, and image from 
+the second (32-63) are used for the eastern sky. At noon, the set 
+assignment is switched, and the sets are played backwards; this 
+allows the effect of the sun rising in the east and setting in the 
+west, without the need to store large images of the whole sky.</p>
+
+
+<h2 id="credits">Credits</h2>
+<ul><li>
+<a href="mailto:corrodedcoder.hotmail@com">Corroded Coder</a>
+</li><li>
+<a href="mailto:interkarma.yahoo@com.au">Gavin Clayton</a> of <a href="http://www.svatopluk.com/interkarma/">Interkarma's Workshop</a>
+</li><li>
+<a href="mailto:andux.bigfoot@com">Sean Weinmann</a> of <a href="http://meepo.dnsalias.org/">Meepo.DNSAlias.Org</a>
+</li></ul>
+<p>Note: All addresses have been spamproofed. To email someone, you must first pass the simple Turing test of putting their @ back where it's supposed to be.</p>
+
+</body></html>

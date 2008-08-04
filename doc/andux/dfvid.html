@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="ISO-8859-1"?><!--UTF-8 is for weenies!-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head><title>Daggerfall VID File Format</title>
+<meta name="description" content="Description of the VID file format used by Bethesda Softworks' game TES: Daggerfall." />
+<style type="text/css">
+<!--
+.credit-email { font-family: merlin, fantasy; font-size: 150%; }
+.credit-link { font-size: 125%; }
+.andux { color: #005000; }
+-->
+</style>
+</head><body bgcolor="#FFFFFF" text="#000000"><h1 align="center">Daggerfall VID File Format</h1>
+
+<p align="center">March 29, 2007</p>
+
+<p align="center" class="andux">(XHTMLized by <a href="#credits" title="Sean Weinmann">Andux</a>)</p>
+
+
+<h2 align="center" id="overall">Overall VID Format</h2>
+
+<p>The overall file is composed of a main header followed blocks of audio and video data.</p>
+
+<pre>
+	Bytes   1 -  15:	<a href="#header">Header</a>
+	Bytes  16 - EOF: 	Various Blocks
+		...
+</pre>
+<p>The type of block is identified by the first byte in the block.</p>
+<pre>
+	0x01 = <a href="#video">Video</a>, <a href="#x01">Compression #1</a>
+	0x02 = <a href="#x02">Palette</a>
+	0x03 = Video, <a href="#x03">Compression #2</a>
+	0x04 = Video, <a href="#x04">Compression #3</a>
+	0x14 = <a href="#x14">End of File</a>
+	0x7C = <a href="#x7c">Audio, Start Frame</a>
+	0x7D = <a href="#x7d">Audio</a>
+</pre>
+
+
+<h2 align="center" id="header">Header</h2>
+
+<p>The header is always the first 15 bytes of the VID file.</p>
+<pre>
+	Bytes   1 -   3:	ASCII	Always "VID"
+	Bytes   4 -   5:	INT16	Always 0x00 02 (512)
+	Bytes   6 -   7:	INT16	Number of Frames
+	Bytes   8 -   9:	INT16	Video Frame Width (256 or 320)
+	Bytes  10 -  11:	INT16	Video Frame Height (200)
+	Bytes  12 -  13:	INT16	Global Delay value?
+	Bytes  14 -  15:	INT16	0x0E 00 (14) in all DF VIDs
+</pre>
+
+
+<h2 align="center" id="x02">Palette Block - 0x02</h2>
+
+<p>This usually only appears immediately after the header.</p>
+<pre>
+	Bytes  1  -  1 :	CHAR8	Block Type (0x02)
+	Bytes  2  - 769:	RGB	256-color VGA palette. Each palette entry is
+	                		composed of 3 triplets (R/G/B) ranging in 
+	                		value from 0 to 63.
+</pre>
+<p>Experimentation has revealed that the Daggerfall engine does corectly 
+interpret palette blocks inserted later in the file, though none of 
+the videos included with the game make use of this functionality.</p>
+
+
+<h2 align="center" id="x7c">Audio Block - 0x7C</h2>
+
+<p>This is usually the first audio block in the file.</p>
+<pre>
+	Bytes   1 -   1:	CHAR8	Block Type (0x7C).
+	Bytes   2 -   3:	INT16	Unknown; always 0.
+	Bytes   4 -   4:	CHAR8	Sound Blaster DAC init value (usually 0xA6)
+	Bytes   5 -   6:	INT16	Audio block data length
+	Bytes   7 - ???:	AUDIO	8-bit audio data
+</pre>
+<p>The DAC init value corresponds to the audio sample rate as follows:</p>
+<pre>
+	InitVal = 256 - (1000000 DIV SampleRate)
+	SampleRate = 1000000 / (256 - InitVal)
+</pre>
+
+
+<h2 align="center" id="x7d">Audio Block - 0x7D</h2>
+
+<p>The audio blocks hold the audio for each frame.</p>
+<pre>
+	Bytes   1 -   1:	CHAR8	Block Type (0x7D).
+	Bytes   2 -   3:	INT16	Audio block data length
+	Bytes   4 - ???:	AUDIO	8-bit audio data
+</pre>
+
+
+<h2 align="center" id="video">Video Block - 0x01, 0x03 and 0x04</h2>
+
+<p>The basic structure of the video blocks is all the same:</p>
+<pre>
+	Bytes   1 -   1:	CHAR8	Block Type (0x01, 0x03 or 0x04).
+	Bytes   2 -   3:	INT16	<a href="#re02">Display time</a> (in 60ths of a second)
+	Bytes   4 - ???:	VIDEO	Compressed video data.
+</pre>
+<p>Each type of video block has a slightly different compression format 
+(see below for details). Unfortunately there is no record size so you 
+must completely parse the video data in order to find the next block.
+<span class="andux">There is only one frame per block, so you can stop parsing video 
+when InputByte == 0 or Bytes Copied >= (Frame Width * Frame Height).</span></p>
+
+<p>It is important to note exactly how the video frames go together. 
+Only the 0x03 video block actually contains a full frame of data. 
+The 0x01 and 0x04 types only contain the pixels that have changed 
+from the previous frame. Thus, generally in order to render any one 
+frame you must also render all previous frames up to the first 0x03 
+video block.</p>
+
+
+<h3 align="center" id="x01">Video compression - 0x01</h3>
+
+<p>The video data in a form of RLE compression with the following 
+algorithim used for uncompression:</p>
+<pre>
+	InputByte = Read 1 Byte From File
+
+	if ( InputByte >= 0x80 )
+		RunLength = InputByte - 0x80
+		Skip RunLength Pixels in the Video Frame
+
+	else if ( InputByte == 0 )
+		End of Video Frame
+
+	else 
+		RunLength = InputByte
+		Read RunLength Bytes From File and Copy to Frame
+	endif
+</pre>
+
+
+<h3 align="center" id="x03">Video compression - 0x03</h3>
+
+<p>This is usually the first video block in the file and contains a 
+full frame of video in regular RLE format. The basic uncompressing 
+algorithm is:</p>
+<pre>
+	InputByte = Read 1 Byte From File
+
+	/* RLE compression */
+	if (InputByte >= 0x80) 
+		NumberofBytes = InputByte - 0x80
+		InputByte = Read 1 Byte From File
+		Add NumberofBytes of InputByte to Video Frame
+
+	else if (InputByte == 0) /* Should never happen in 0x03 */
+		End of Video Frame
+
+	else 
+		NumberofBytes = InputByte
+		Read NumberofBytes from File and Copy to Video Frame
+	endif
+</pre>
+
+
+<h3 align="center" id="x04">Video compression - 0x04</h3>
+
+<p>This format has an extra header variable:</p>
+<pre>
+	Bytes   4 -   5:	INT16	Y-Offset. The video frame data 
+	                	starts at this line in the frame.
+</pre>
+<p>What follows is the video frame data in the same format as the <a href="#x01">0x01</a> type.</p>
+
+
+<h2 align="center" id="x14">End of File - 0x14</h2>
+
+<p>This block always occupies the last byte the file.</p>
+<pre>
+	Bytes   1 -   1:	CHAR8	Block Type (0x14).
+</pre>
+<p class="andux">This is only included for completeness.</p>
+
+
+<h2 align="center" id="credits">Credits</h2>
+<ul><!--Anybody else find it weird that all three of our names have the same number of characters?-->
+<li><a href="mailto:andux.bigfoot@com" class="credit-email">Sean Weinmann</a> of <a href="http://meepo.dnsalias.org/" class="credit-link">Meepo.DNSAlias.Org</a> (in <span class="andux">green</span>).</li>
+<li><a href="mailto:dave.uesp@net" class="credit-email">Dave Humphrey</a> of the <a href="http://www.uesp.net/" class="credit-link">Unofficial Elder Scrolls Pages</a>.</li>
+<li><a href="mailto:interkarma.yahoo@com.au" class="credit-email">Gavin Clayton</a> of <a href="http://www.dfworkshop.net/" class="credit-link">Interkarma's DF Workshop</a>.</li>
+<li><a href="mailto:corrodedcoder.hotmail@com" class="credit-email">Corroded Coder</a></li>
+</ul>
+<p class="andux">Note: All addresses have been spamproofed. To email someone, you must first pass the simple Turing test of putting their @ back where it's supposed to be.</p>
+
+
+<hr />
+<h2 align="center" id="example">Programming Example</h2>
+
+<p class="andux">For those of you (like me) who find it difficult to get your heads 
+around a file format with specifications alone, here is a breakdown (in English) 
+of the inner workings of a VID reader, based on my own audio/frame dumper app.
+Hopefully, you will find it helpful.</p>
+
+
+Be a good little programmer and initialize your variables:<ul>
+
+	<li>VID Header:<ul>
+		<li>Three (3) Bytes for confirming the file starts with "VID" (and a constant for comparison).</li>
+		<li>One INT16 for reading that mysterious 512 (and maybe a const for comparison).</li>
+		<li>One INT16 for the Frame Count.</li>
+		<li>One INT16 for the Frame Width.</li>
+		<li>One INT16 for the Frame Height.</li>
+		<li>One INT16 for the Global Delay.</li>
+		<li>One INT16 for Unknown Value 1.</li>
+	</ul></li>
+	<li>One (1) byte for the Block Type</li>
+
+	<li>Palette Block:<ul>
+		<li>768 bytes (or an array, whatever) for the 256-Color VGA Palette.</li>
+	</ul></li>
+
+	<li>Audio Block 0x7C:<ul>
+		<li>One INT16 for Unknown Value 2.</li>
+		<li>One (1) byte for the Playback Rate.</li>
+	</ul></li>
+	<li>Both Audio Blocks:<ul>
+		<li>One INT16 for the Audio Block Size.</li>
+		<li>One big buffer (~16K to be safe) for the Audio Data (or a bunch of smaller ones).</li>
+	</ul></li>
+
+	<li>Video Block:<ul>
+		<li>One INT16 for Unknown Value 2 (optional; you could use Audio Block Size for this, too).</li>
+		<li>One INT16 for the Y-Offset (Block Type 4 only).</li>
+		<li>One (1) byte for the Run Length.</li>
+		<li>One (1) byte for the Pixel Value (Block Type 3 only).</li>
+		<li>127 bytes for the Image Data.</li>
+	</ul></li>
+
+	<li>(Frame Width * Frame Height) bytes for the FrameBuffer (64K ought to be enough for anyone!).</li>
+</ul>
+
+
+Ensure the VID File exists, and open it.
+
+<p>Read 3 ASCII bytes from the beginning of the VID File; if they read "VID", continue.<br />
+Read an INT16; it should have the value 512.<br />
+Read an INT16 containing the Frame Count.<br />
+Read an INT16 containing the Frame Width.<br />
+Read an INT16 containing the Frame Height.<br />
+Read an INT16 containing the Global Delay.<br />
+Read an INT16 containing Unknown Value 1.</p>
+
+<p>Calculate FrameBuffer Size by multiplying Frame Width and Frame Height.</p>
+
+Do the following:<ul> 
+	<li>Read one byte containing the Block Type.</li>
+
+	<li>If the Block Type has the value 2, then:<ul> 
+		<li>Read 768 bytes containing the 256-Color VGA Palette.</li>
+	</ul></li>
+	<li>Otherwise, if the Block Type has the value 124, then:<ul> 
+		<li>Read or skip an INT16 containing Unknown Value 2.</li>
+		<li>Read one byte containing the Playback Rate.</li>
+		<li>Read an INT16 containing the Audio Block Size.</li>
+		<li>Read (Audio Block Size) bytes of 8-bit, Unsigned Audio Data.</li>
+	</ul></li>
+	<li>Otherwise, if the Block Type has the value 125, then:<ul> 
+		<li>Read an INT16 containing the Audio Block Size.</li>
+		<li>Read (Audio Block Size) bytes of 8-bit, Unsigned Audio Data.</li>
+	</ul></li>
+	<li>Otherwise, if the Block Type has the value 1, 3, or 4, then:<ul> 
+		<li>Read or skip an INT16 containing Unknown Value 2.</li>
+
+		<li>If the Block Type has the value 4, then:<ul>
+			<li>Read an INT16 containing the Y-Offset.</li>
+			<li>Jump to offset (Y-Offset * Frame Width) in the FrameBuffer.</li>
+		</ul></li>
+		<li>Otherwise, jump to the beginning of the FrameBuffer.</li>
+
+		<li>Do the following:<ul>
+			<li>Read one byte containing the Run Length.</li>
+
+			<li>If the Run Length has a value greater than 127, then:<ul>
+				<li>If the Block Type has the value 3, then:<ul>
+					<li>Read one byte containing the Pixel Value.</li>
+					<li>Copy the Pixel Value over the next (Run Length - 128) pixels in the FrameBuffer.</li>
+				</ul></li>
+				<li>Otherwise, just increment your offset in FrameBuffer by (Run Length - 128).</li>
+			</ul></li>
+			<li>Otherwise, if the Run Length has a value greater than 0, then:<ul>
+				<li>Read (Run Length) bytes containing the Image Data.</li>
+				<li>Copy the Image Data over the next (Run Length) bytes of the FrameBuffer.</li>
+			</ul></li>
+			<li>Throughout all of this, you should ensure that you do not overflow the FrameBuffer.</li>
+		</ul></li>
+		<li>Repeat until your offset in the FrameBuffer is equal to the FrameBuffer Size, or (Run Length) == 0.</li>
+
+		<li>Copy the FrameBuffer to memory, screen, disk, or whatever.</li>
+	</ul></li>
+	<li>Otherwise, if the Block Type has the value 20, then:<ul>
+		<li>You have reached the end of the VID File.</li>
+	</ul></li>
+	<li>Otherwise, if the Block Type has the value 0, and we just ended a frame, then:<ul>
+		<li>Go back to the start of the loop (this is not a block, just a bit of format weirdness).</li>
+	</ul></li>
+	<li>Otherwise, you are horribly lost, and should print debug info and probably check with the user before attempting to continue.</li>
+</ul>
+Repeat until you reach the end of the VID File.
+
+
+<p class="andux">Note that this is just the basic functionality for interpreting VID files.
+In an actual player, you would probably want to cache the next couple KB or so of the file to 
+improve speed on video blocks, and generally optimize the hell out of the code.</p>
+
+
+<hr />
+<h2 align="center" id="reply">Community Response</h2>
+
+
+<h3 id="re01">Re: DF movies</h3>
+
+From: Corroded Coder<br />
+Date: December 14, 2003
+
+<blockquote><pre>Andux,
+
+Had a comparison of your format versus mine - I'd split up my frames in a
+kind of odd way - I'd been bundling the audio and video together and
+decoding based upon that - but the same result was acheived. I had a feeling
+there were some more similarities between frame types to be discovered.
+
+Anyway, as payback - here's a couple of "unknowns" in your document for you.
+
+In the header:
+Bytes  12 -  13:	INT16	Unknown
+In the video block:
+Bytes   2 -   3:	INT16	Unknown value
+
+These are both used to calculate the amount of time each frame should be
+displayed (and presumably audio frame is heard). They are both little endian
+format. The header delay value is added to the video block delay value to
+produce the total time for the delay. So by doubling the header value in a
+file, it halves the overall frame rate. Equally you can make adjustments to
+the individual frames by modifying that value on a per frame basis.
+
+Now - you'll be wanting to know what these "time delay" units are right?
+Well - now we enter my approximation zone. To the best of what I've been
+able to tell - these units should be 16 millisecond each. So, if the total
+of header and frame delays is 0x0100 (which would be very high btw) then
+delay should be 256 * 16  = 4096 milliseconds = about 4 seconds. Just don't
+quote me on that 16 millisecond bit ;o)
+
+Anyway - I'm tired and I've rambled enough - I realised I'd attached a
+slightly old exe to my last mail - so the most current one is attached this
+time.
+
+Thanks again,
+CC
+</pre></blockquote>
+
+<div class="andux">
+<p>Looking at the format, it seems like each video frame is supposed to be
+displayed for the length of the next audio block (i.e., until the next frame
+overwrites it). Maybe the delay values are used to prevent audio skipping or
+something (e.g., "Start working on the next frame after X milliseconds so
+it's ready before the audio finishes.").</p>
+
+<p>Correction: Each video frame is linked to the audio block immediately 
+<em>before</em> it in the file. Comparing the results of CC's audio_block_size calculation 
+(see below) to the actual DF videos confirms this.</p>
+
+<p>Further update: After doing some calculations based on the new (relatively speaking)
+<a href="#x7c">sample rate formulas</a>, I have determined that one delay unit is
+equal to 1/60th of a second (or as close to it as possible, given all the wacky sample rates and integer division).
+Thus, CC's formulas may be adapted to other sample rates as follows:</p>
+
+<pre>
+	AudioGranuleSize = SampleRate DIV 60
+
+	AudioBlockSize = (HeaderDelay + FrameDelay) * AudioGranuleSize
+	FrameDisplayTimeInSeconds = (HeaderDelay + FrameDelay) / 60
+</pre>
+
+<p>Note, however, that I have not yet had a chance to test this with the Daggerfall player.</p></div>
+
+
+<h3 id="re02">Notes for Andux - re: Skynet .vid file formats.</h3>
+
+From: Corroded Coder<br />
+Date: January 11, 2004
+
+<ul><li>
+many contain multiple palette blocks (which checks my code nicely).
+</li><li>
+some headers contain 0x000A instead of 0x000E (for the remaining unknown word) - I have been unable to identify what this indicates ( could indicate multiple palette blocks - but if so the Daggerfall player ignores it).
+</li><li>
+I've finally worked out the math for the video delay values. Size of audio_block_size = (header_delay + frame_delay) * 185. This is *exact* (for all except the final frame which is only partial). So frame time for no-audio = ( (header_delay + frame_delay) * 185)/11025. (from my memory). This would of course be affected by a change in audio speed (from 0xA6)
+</li><li>
+There are some Skynet videos without any audio.
+</li></ul>
+
+<p align="center" class="andux" style="margin-top: 2em;">This document is hosted as part of <a href="../">Andux's Daggerfall Studio</a>.</p>
+</body></html>

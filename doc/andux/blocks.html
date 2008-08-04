@@ -1,0 +1,672 @@
+<html><head><title></title>
+
+</head><body>
+
+<h1>BLOCKS.BSA</h1>
+
+A typical BSA file with a filename type directory at the end with 1295 
+records.  There are three types of records which are contained in this
+BSA file which can be derived from their directory filenames.
+<dl>
+<dt>*.RMB</dt><dd>Most records are this type of variable length record. 920 files.</dd>
+<dt>*.RDB</dt><dd>Variable length record. 187 files.</dd>
+<dt>*.RDI</dt><dd>Seems to be a fixed length record of 512 bytes. Appears to contain only 00's and 01's. 187 files.</dd>
+<dt>FOO</dt><dd>One record is not any real data but actually a DOS directory listing of someone's directory (with a hard drive named FireBall).</dd>
+</dl>
+
+	<h2 id="toc">Contents</h2>
+<ul>
+<li>RMB Files<ul>
+       	<li><a href="#rmblayout">General File Layout</a></li>
+	<li><a href="#rmbfld">Fixed Length Data</a><ul>
+		<li><a href="#rmbfldrecc">Record Counts</a></li>
+		<li><a href="#rmbfldblockpos">Block Positions</a></li>
+		<li><a href="#rmbfldsec1">Section1</a></li>
+		<li><a href="#rmbfldsec2">Section2</a></li>
+		<li><a href="#rmbfldsizes">Block Data Sizes</a></li>
+		<li><a href="#rmbfldsmap">Small Maps</a></li>
+		<li><a href="#rmbfldthumb">Automap</a></li>
+		<li><a href="#rmbfldfiles">Filenames</a></li>
+	</ul></li>
+	<li><a href="#rmbb">Block Data</a><ul>
+		<li>Outside<ul>
+		    	<li><a href="#rmbbheader">Header</a></li>
+		    	<li><a href="#rmbbobj">3D Object Data</a></li>
+		    	<li><a href="#rmbbflats">Flat Object Data</a></li>
+		    	<li><a href="#rmbbdata3">Section3</a></li>
+		    	<li><a href="#rmbbpeople">People Data</a></li>
+		    	<li><a href="#rmbbdoors">Door Data</a></li>
+		</ul></li>
+		<li>Inside<ul>
+		    	<li>(Same as Outside)</li>
+		</ul></li>
+	</ul></li>
+	<li><a href="#rmb3dobj">3D Objects</a></li>
+	<li><a href="#rmbflats">Flat Objects</a></li>
+</ul></li>
+<li>RDB Files<ul>
+       	<li><a href="#rdblayout">General Format</a></li>
+       	<li><a href="#rdbheader">Header</a></li>
+       	<li><a href="#rdbmodels">3D Models Section</a></li>
+       	<li><a href="#rdbobjs">Object Section</a><ul>
+		<li><a href="#rdboheader">Header</a></li>
+		<li><a href="#rdboroots">Roots</a></li>
+		<li><a href="#rdbodata">Data</a></li>
+	</ul></li>
+       	<li><a href="#rdbaction">Action Record</a></li>
+</ul></li>
+</ul>
+
+	<h2>RMB Files</h2>
+<div style="margin: 0px 1em;">
+	<h3 id="rmblayout">General File Layout</h3>
+
+  The RMB file is the most common type in the blocks file and is organized as
+  follows:
+<pre>
+	RMB File	
+		Fixed Length Data (FLD)		(6776 bytes total)
+			Record Counts		(3 bytes)
+			Block Positions		(640 bytes)
+			Section1		(832 bytes)
+			Section2		(128 bytes)
+			Block Data Sizes	(128 bytes)
+			Small Maps		(520 bytes)
+			Automap 		(4096 bytes))
+			Filenames		(429 bytes)
+		...RMB Block Data...		(Variable)
+			Outside Header		(17 bytes)		
+			  3D Object Data	(66 byte records)
+			  Flat Object Data	(17 byte records)
+			  Data Section3		(16 byte records)
+			  People Data		(17 byte records)
+			  Door Data		(19 byte records)
+			Inside Header		(17 bytes)
+			  3D Object Data	(66 byte records)
+			  Flat Object Data	(17 byte records)
+			  Data Section3		(16 byte records)
+			  People Data		(17 byte records)
+			  Door Data		(19 byte records)
+			Extra Byte		(1 byte, optional)
+		...RMB 3D Objects...		(66 byte records)
+		...RMB Flat Objects...		(17 byte records)
+</pre>
+  Note that in the RMB block data section there are two repeating sections.
+  The first section contains data for the outside, or main, object, such
+  as the exterior of a house or tavern.  This section usually just has one
+  3D Object Data section which is the main 3D object for locations.  The 
+  following section holds the data for the interior object, such as inside 
+  a house or tavern.  Typically this section holds much more information
+  than the previous one.
+
+
+		<h3 id="rmbfld">Fixed Length Data (FLD)</h3>
+<div style="margin: 0px 1em;">
+  Each block record appears to begin with 0x1A78 (6776) bytes of fixed length
+  data.  This data can be subdivided into the follow records.
+<pre>
+		FLD Record Count	(3 bytes)
+		FLD SubBlock Positions	(640 bytes)
+		FLD Section1		(832 bytes)
+		FLD Section2		(128 bytes)
+		FLD Block Data Sizes	(128 bytes)
+		FLD Small Maps		(520 bytes)
+		FLD Automap 		(4096 bytes)
+		FLD Filenames		(429 bytes)
+</pre>
+  In general, each of these subsections can be subdivided into 32 further 
+  subrecords as described in each section below.
+
+
+			<h4 id="rmbfldrecc">FLD Record Counts</h4>
+
+  The first 3 bytes in the fixed length data give the number of various
+  records which appear later on in the block record.
+
+	[Byte 0]  byte NumSubRecords1;
+		Values range from 0 to 28 with a total of 9005 subrecords1 in 
+		the blocks file.
+	[Byte 1]  byte NumSubRecords2;
+		Values range from 0 to 93 with a total of 9153 subrecords2
+		in the blocks file.
+	[Byte 2]  byte NumSubRecords3;
+		Values range from 0 to 74 with a total of 11732 subrecords3
+		in the blocks file.
+
+
+			<h4 id="rmbfldblockpos">FLD Block Positions </h4>
+
+  The fixed length data header is found at offsets 0x03 to 0x282 (642) bytes
+  in the FLD for a total of 0x280 (640 bytes). It contains 32 records of
+  0x1A (20) bytes each which contain the positions for each of the sub-blocks
+  in the file.
+<pre>
+		[Bytes  0 - 3]	long XPos1;
+		[Bytes  4 - 7]	long ZPos1;
+			Unknown what these coordinates are for. Possibly the 
+			subblock size?
+		[Bytes  8 -11]  long XPos2;
+		[Bytes  12-15]  long ZPos2;
+			Give the position of the subblock in map coordinates.
+		[Bytes 16-19]	long YPos2;
+			Unknown.
+</pre> 
+
+			<h4 id="rmbfldsec1">FLD Section1</h4>
+
+  The fixed length data section1 is found at offsets 0x283 (643) to 
+  0x5C2 (1474), just after the FLD header, for a total of 0x340 (832) bytes.
+  It seems to contain 32 records of 0x1A (26) bytes each.  It seems to
+  be very similar to the location post-records found in MAPS.BSA.
+	
+
+			<h4 id="rmbfldsec2">FLD Section2</h4>
+
+  The fixed length data section2 is found at offsets 0x5C3 (1475) to 
+  0x642 (1602), just after the FLD Section1, for a total of 0x80 (128) bytes.
+  It should contain 32 records of 4 bytes each. 
+
+
+			<h4 id="rmbfldsizes">FLD Block Data Sizes</h4>
+
+  This section is found at offsets 0x5C3 (1475) to 0x6C2 (1730), just after
+  the FLD Section2, for a total of 0x80 (128) bytes. It contains 32 records
+  of 4 bytes each and represents the record sizes of the Block Data records
+  which appear later in the file.
+<pre>
+		[Bytes 0-127]	long Sizes[32];
+</pre>
+
+			<h4 id="rmbfldsmap">FLD Small Map Data</h4>
+
+  The fixed length data section3 is found at offsets 0x6C3 (1731) to 
+  0x8CD (2253), just after the FLD Block Data Sizes, for a total of 
+  0x208 (520) bytes. It appears to contain an 8 byte header followed by
+  two sections of 256 bytes each.  
+<pre>	
+	[Bytes   0-  7]	char Header[8];
+	[Bytes   8-263]	char TextureInfo[16][16];
+		See description which follows. Contains modified texture
+	     	image indices to use.
+	[Bytes 264-519]	char ObjectInfo[16][16];
+		Currently unknown.
+</pre>
+  The first 256 bytes after the header shows some interesting designs when 
+  viewed as a 16x16 image and probably indicates the textures to display on
+  the land under the block.  The format for the texture info bytes is a bit
+  field described as follows:
+<pre>
+	[Bits 0-5]  int	TextureIndex;	(6 bits)
+		This value, ranging from 0-63, gives the new texture index to
+		display. The texture file to use will depend on the current 
+		location (desert, temperate, etc...) and the time (raining,
+		summer, winter, etc...).  
+	[Bit    6]  int RotateTexture;	(1 bit)
+		Might be a flag indicating that the texture should be rotated
+		90 degrees so that the width becomes its height and vice-versa.
+		This allows reuse of textures rather than duplicating them in
+		the texture file.
+	[Bit    7]  int FlipTexture;	(1 bit)
+		Appears to be a flag indicating that the texture should be
+		flipped in both the X and Y directions so that its last pixel
+		becomes its first.
+</pre>
+  The last 256 bytes looks more like a starry night and could indicate how to
+  place scenery around the block, but its purpose is unknown currently. It may
+  be a bit field like the first 256 byte section.
+  
+
+			<h4 id="rmbfldthumb">FLD Automap</h4>
+
+  The fixed length data section4 is found at offsets 0x8CB (2251) to 
+  0x18CA (6346), just after the FLD Small Map Data, for a total of 0x1000 (4096)
+  bytes. It contains a 64x64 bitmap which is seen when you look at the 
+  automap while in town.  The bitmap also contains extra information which
+  is not displayed.  The general pixel values are as follows:
+<pre>	
+		0x00 	Background, transparent
+		0x03	Store? (orange)
+		0x10	Taverns (green)
+		0x12	Residence? (gray)
+		0x13	Residence (gray)
+		0x14	Residence? (gray)
+		0xE0	Special Item? (not displayed)
+		0xFA	Object (not displayed)
+		0xFB	Object (not displayed)
+</pre>
+  It is not known what the three types of residences represent.  The bitmap
+  probably does not control where things appear but was most likely used as
+  as development tool.
+
+
+			<h4 id="rmbfldfiles">FLD Filenames</h4>
+
+  The list of component filenames is found at offset 0x18CB (6347) to
+  0x1A77 (6775), just after the FLD Section4, for a total of 0x1AD (429)
+  bytes. Filenames are 13 bytes which includes the terminating NULL
+  character (regular 8.3 syntax). There may be NULL filenames at the end
+  of the list.  The first filename is always the block record file followed
+  by 32 other filenames.
+<pre>
+	[Bytes  0- 12]	char BlockFilename[13];
+	[Bytes 13-428]  char Filenames[13][32];
+</pre>
+</div>
+		<h3 id="rmbb">Block Data</h3>
+<div style="margin: 0px 1em;">
+  Following the FLD section there are usually one or more blocks of block
+  data which can be described as follows:
+<pre>
+	Header			(17 bytes)	     }	Exterior data like that
+	  3D Object Data	(66 byte records)    }  for a house or tavern. 
+	  Flat Object Data	(17 byte records)    }  Usually contains just 
+	  Data Section3		(16 byte records)    }  one 3D object 
+	  People Data		(17 byte records)    }	
+	  Door Data		(19 byte records)    }
+	Header			(17 bytes)	   	} Interior data like 	
+	  3D Object Data	(66 byte records)	} that for the inside
+	  Flat Object Data	(17 byte records)	} of a house or tavern.
+	  Data Section3		(16 byte records)	} Contains much more 
+	  People Data		(17 byte records)	} data than the previous
+	  Door Data		(19 byte records)	} section.
+	Extra Byte		(Optional 1 byte, 0x96)
+</pre>
+  Some RMB files do not have any subrecords, they simply end after their FLD
+  Filenames.  In some subrecords there is an extra byte, 0x96, after the end
+  of the record.  It can be identified by the length of the subrecord1 as
+  given in the fixed length data section for the RMB file.
+
+
+		<h3 id="rmbbheader">Block Header</h3>
+
+  The header is always at the start of the block subrecord and appears to be
+  always 0x11 (17) bytes in size.
+<pre>
+	[Byte      0]	unsigned char Num3DObjectRecords;
+	[Byte      1]	unsigned char NumFlatObjectRecords;
+	[Byte      2]	unsigned char NumSection3Records;
+	[Byte      3]	unsigned char NumPeopleRecords;
+	[Byte      4]	unsigned char NumDoorRecords;
+		The number of records in each of the data sections which follow.
+	[Bytes  5- 6]	short Unknown1;
+	[Bytes  7- 8]	short Unknown2; (always non-zero)
+	[Bytes  9-10]	short Unknown3;
+	[Bytes 11-12]	short Unknown4; (always non-zero)
+	[Bytes 13-14]	short Unknown5; (always non-zero)
+	[Bytes 15-16]	short Unknown6; (always non-zero)
+		The data suggests 3 pairs of shorts but it could be something
+		entirely different.
+</pre>
+
+		<h3 id="rmbbobj">Block Record 3D Object Data</h3>
+
+  The data follows immediately after the block header and is composed of 
+  0x42 (66) byte records.  It contains the 3D object information for the
+  current block.
+<pre>
+	[Bytes  0- 1]	short ObjectID1;
+		Always non-zero in the range 1-511. 
+	[Byte      2]	char  ObjectID2;
+		Ranges from 0 to 63.
+		The required 3DObject to load from Arch3D.BSA can be calculated
+		from:
+				ObjectID1 * 100 + ObjectID2
+
+		This appears to give the directory ID for the appropiate object.
+		It may be done this way if the objects are grouped by type in
+		some fashion.
+	[Byte      3]	char  Unknown1;
+		Always non-zero, ranges from 3 to 67.
+	[Bytes  4- 7]	long Unknown2;
+		Non-zero only in 1297 of 236250 records. Seems to repeat within
+		the same file.  Could be two or four seperate fields.
+	[Bytes  8-13]	long Unknown3;
+	[Bytes 14-17]	long Unknown4;
+		Non-zero only in 272 of 236250 records. Seems to repeat within
+		the same file.  Could be two or four seperate fields.
+	[Bytes 16-19]	long NullValue1;
+	[Bytes 20-23]	long NullValue2;
+		Always 0 (confirmed).
+	[Bytes 24-27]	long XPos1;	( -896256 to 761856 )
+	[Bytes 28-31]	long YPos1;	(  -59136 to 273152 )
+	[Bytes 32-35]	long ZPos1;	( -815360 to 705536 )
+		Usually 0s, but some (370) records have what look like
+		coordinates here with the given ranges.
+	[Bytes 36-39]	long XPos2;	( -1088 to 1096 )
+	[Bytes 40-43]	long YPos2;	(  -579 to  518 )
+	[Bytes 44-47]	long ZPos2;	(  -512 to 1536 )
+		Looks to be a coordinate of some form.  Values range as
+		indicated above and is usually non-zero.
+	[Bytes 48-51]	long NullValue3;
+		Always 0 (confirmed).
+	[Bytes 52-53]	short Angle;
+		Almost always non-zero.  A value of 0x200 specifies that the
+		object should be rotated 90 degrees about the Y-Axis (vertical).
+	[Bytes 54-55]	short Unknown5;
+		Always zero.
+	[Bytes 56-59]	long NullValue6;
+		Always 0 (confirmed).
+	[Bytes 60-63]	long Unknown8;
+		Only non-zero 16 times in one file (CUSTAA45.RMB) where it is
+		0x200 (512).
+	[Bytes 64-65]	short NullValue5;
+		Always 0 (confirmed).
+</pre>
+
+		<h3 id="rmbbflats">Block Flat Objects</h3>
+
+  This data follows immediately after the 3D Object Data in a Block Record 
+  and is composed of 0x11 (17) byte records.  It contains information about
+  flat objects in the block.  Flat objects are just that, merely textures 
+  painted on planes which always face the viewer (called decals in Direct3D).
+<pre>
+	[Bytes 0- 3]		long XPos;
+	[Bytes 4- 7]		long YPos;
+	[Bytes 8-11]		long ZPos;
+		Looks like coordinate of some form.
+	[Bytes 12-12.6]		int SubImageIndex;	(7 bits)
+		The subimage in the texture file to use for the flat.
+	[Bytes 12.7-13.7]	int TextureIndex;	(9 bits)
+		The texture file index to use.
+	[Bytes 14-15]		short Unknown1;
+		Usually non-zero (50%) and ranges from 0 to 65535. Might 
+		indicate whether or not to display the flat.  The 'debuging'
+		icons usually have a value of 0x0000 or 0xFFFF here.
+	[Byte     16]		char  Unknown2;
+		Usually non-zero (90%) and ranges from 0 to 105.
+</pre>
+
+		<h3 id="rmbbdata3">Block Data Section3</h3>
+
+  This data follows immediately after the Flat Objects Data and is
+  composed of 0x10 (16) byte records. It has an unknown purpose.
+<pre>
+	[Bytes  0- 3]	long XPos;
+	[Bytes  4- 7]	long YPos;
+	[Bytes  8-11]	long ZPos;
+		Looks like coordinate of some form.
+	[Byte     12]	char  Unknown1;
+		Usually zero (99%) and ranges from 0 to 15.  Repeats mostly
+ 		in each file where it is present.
+	[Byte     13]	char  Unknown2;
+		Almost always non-zero and ranges from 0 to 45.
+	[Bytes 14-15]	short Unknown3;
+		Usually zero and ranges from 0 to 1292.  Lower 8 bits are
+		always zero and upper 8 bits range from 0 to 7.
+</pre>
+
+		<h3 id="rmbbpeople">Block People Data</h3>
+
+  This data follows immediately after the Section3 Data in a Block record and
+  is composed of 0x11 (17) byte records.  Appears to be the same format as
+  the Flat Object data.  It contains information about the people in a block.
+<pre>
+	[Bytes 0- 3]		long XPos;
+	[Bytes 4- 7]		long YPos;
+	[Bytes 8-11]		long ZPos;
+		Looks like coordinate of some form.
+	[Bytes 12-12.6]		int SubImageIndex;	(7 bits)
+		The subimage in the texture file to use for the person.
+	[Bytes 12.7-13.7]	int TextureIndex;	(9 bits)
+		The texturefile to use for the person.
+	[Bytes 14-15]		short NPCType;
+		Seems to indicate the type of PC such as weaponsmith, barkeep.
+		etc...
+			0x0000 - Common person
+			0x01FE - Barkeep
+	[Byte     16]		char  Unknown3;
+		Always non-zero and ranges from 1 to 45.
+</pre>
+
+		<h3 id="rmbbdoors">Block Door Data</h3>
+
+  This data follows immediately after the People Data in a Block and is
+  composed of 0x13 (19) byte records.  It seems to give information about
+  the movable doors in a block.
+<pre>	
+	[Bytes 0- 3]	long XPos;
+	[Bytes 4- 7]	long YPos;
+	[Bytes 8-11]	long ZPos;
+		Looks like coordinate of some form.
+	[Bytes 12-13]	short Unknown1;
+		Usually non-zero in the range 0 to 1536.
+	[Bytes 14-15]	short Unknown2;
+		Always non-zero in the range 90 to 98.
+	[Bytes 16-17]	short Unknown3;
+		Almost always non-zero in the range 0 to 7173.
+	[Byte     18]	char  NullValue1;
+		Always 0 (confirmed).
+</pre>
+</div>
+		<h3 id="rmb3dobj">3D Objects</h3>
+
+  These appear to be the same format as the RMB Blocks 3D Objects which
+  are 0x42 (66) byte records.  It probably lists the 3D Objects which
+  populate the exterior of a block, such as outside a house or tavern
+  (fences, signs, etc...).
+
+
+		<h3 id="rmbflats">Flat Objects</h3>
+	
+These appear to be the same format as the RMB Block Flat Objects
+are 0x11 (17) byte records.  It probably gives the Flat Objects which
+appear outside the given block, such as grass, bushes, etc...
+</div>
+
+
+
+	<h2 id="rdb">RDB Files</h2>
+<div style="margin: 0px 1em;">
+<p>RDB files are archived in Blocks.bsa. Each BSA filename begins with a
+letter and is followed by a 7-digit decimal integer. (For example, 
+"N0000019.RDB") These files are referenced in the dungeon records of 
+Maps.bsa.</p>
+
+<p>Each RDB file describes one dungeon 'block' in detail. Each block of 
+dungeon is fits on a 2D grid with other blocks. There are two connecting
+passages in each of the four cardinal directions, so there are eight paths
+leading out of each block.</p>
+
+		<h3 id="rdblayout">General Format</h3>
+<pre>
+	[Header]
+	[3D Models Section]
+	    [3D Model Records]
+	    [Additional Data]
+	[Object Section]
+	    [Object Header Section]
+	    [Object Roots Section]
+	    [Object Data Section]
+</pre>
+		<h3 id="rdbheader">Header (20 bytes):</h3>
+<pre>
+	[Byte 0]      char Unknown1;
+	[Byte 1]      char Unknown2;
+	[Bytes 2-3]   short Unknown3;
+	[Bytes 4-7]   long GridWidth;
+	    The width of the Object Root Section
+	[Bytes 8-11]  long GridHeight;
+	    The height of the Object Root Section
+	[Bytes 12-15] unsigned long objectOffset;
+	    The offset from the beginning of the RDB file to the Object
+	    Root Section
+	[Bytes 16-19] long Unknown4;
+</pre>
+
+		<h3 id="rdbmodels">3D Models Section (9000 bytes):</h3>
+
+   First is a list of 750 3D Model Records of 8 bytes each. Unused records are
+   filled with 0xFF. Each record has the following format.
+
+<pre>
+	[Bytes 0-4] char modelID[5];
+	    a string containing the five-digit decimal representation of
+	    the object's model ID
+	    as seen in Arch3D.bsa
+	    (not null-terminated)
+	[Bytes 5-7] char objectType[3];
+	    a short string possibly describing the type of object
+	    (not null-terminated)
+</pre>
+
+	Next is another list of 750 records, but of only 4 bytes each.
+	They seem to correspond to the 3D Model Records. The format of 
+ 	these bytes is unknown. Unused records are filled with 0x00.
+
+
+		<h3 id="rdbobjs">Object Section:</h3>
+<div style="margin: 0px 1em;">
+   The Object Section is organized as follows:
+<pre>	[Object Header Section]
+	[Object Roots Section]
+	[Object Data Section]
+</pre>
+
+			<h4 id="rdboheader">Object Header Section (512 bytes):</h4>
+<pre>
+	[Bytes 0-3]   long UnknownOffset;
+	    An offset from the beginning of the RDB file to a linked list
+	    of unknown purpose and format.
+	[Bytes 4-7]   long Unknown1;
+	[Bytes 8-11]  long Unknown2;
+	[Bytes 12-15] long Unknown3;
+	[Bytes 16-19] long FileSize;
+	    The length of the RDB file, in bytes.
+	[Bytes 20-51] char Unknown4[32];
+	    Seem to always be 0xFF
+	[Bytes 52-55] char TagDAGR[4];
+	    Seem to always be the character array "DAGR"
+	[Bytes 56-511] char Unknown5[456];
+	    Seem to be 0xFF
+</pre>
+			<h4 id="rdboroots">Object Roots Section:</h4>
+<pre>
+	[Bytes 0-...] long Offsets[]
+</pre>
+   The number of longs in the list is GridWidth*GridHeight. Each entry is an
+   offset from the beginning of the file to an Object Record. Any negative 
+   value indicates that no object data is present. The meaning of the grid 
+   layout is unknown.
+
+			<h4 id="rdbodata">Object Data Section:</h4>
+
+   This section contains numerous records of various types, not in any 
+   particular order.
+
+<p>Each Object Record is a node of a doubly linked list. Use the
+Object Roots Section to find the head of the list, and iterate
+using the offsetNext and offsetPrev fields.</p>
+<pre>
+   Object Record (25 bytes):
+	[Bytes 0-3]   long offsetNext;
+	    The offset from the beginning of the RDB file to the next
+	    Object Record. Any negative value indicates that there is no next item.
+	[Bytes 4-7]   long offsetPrev;
+	    The offset from the beginning of the RDB file to the previous Object Record.
+	    Any negative value indicates that there is no previous item.
+	[Bytes 8-11]  long xLoc;
+	[Bytes 12-15] long yLoc;
+	[Bytes 16-19] long zLoc;
+	    These three values define the object's location in space.
+	[Byte 20]        char objectType;
+	    This can take on only these three values:
+	        0x01: The object is a 3D model.
+	        0x02: The object is a light source.
+	        0x03: The object is a flat (including markers and monsters).
+	[Bytes 21-24] long postRecordOffset;
+	    The offset from the beginning of the RDB file to the
+	    object's type-specific data.
+</pre>
+   Each object has a variable length post record, pointed to by
+   postRecordOffset. The format of this record depends on the objectType.
+<pre>
+   Object Post Record, type 0x01 (3D Object) (23 bytes):
+	[Bytes 0-3]   long xAngle;
+	[Bytes 4-7]   long yAngle;
+	[Bytes 8-11]  long zAngle;
+	    the rotation angles about each axis
+	[Bytes 12-13] short ModelIndex;
+	    Indexes one of the 750 entries in the 3D Models Section.
+	    This model is used for the object.
+	[Bytes 14-17] long Unknown3; (ranges from 0 to 240)
+	[Byte 18]     char Unknown4; (ranges from 0 to 108)   
+	[Bytes 19-22] long ActionOffset;
+	    Offset from the beginning of the RDB file to an Action
+ 	    Record, which contains additional information about how this
+	    object behaves. If this value is -2 then no such record exists
+	    for this object.
+
+   Object Post Record, type 0x02 (Light Source) (10 bytes):
+	[Bytes 0-3]   long Unknown1;
+	[Bytes 4-7]   long Unknown2;
+	[Bytes 8-9]   short Unknown3;
+	    (Presumably, these values determine light intensity, range, etc.)
+
+   Object Post Record, type 0x03 (Flat Object) (11 bytes):
+	[Bytes 0-1] {
+	    [bits 0-6]   int SubImageIndex;        (7 bits)
+	    [bits 7-15]  int TextureIndex;        (9 bits)
+	}
+</pre>
+   The texture to use, formatted as in the "RMB Block Flat
+   Objects" section of an RMB file. The TextureIndex identifies
+   the texture file and the SubImageIndex identifies the image
+   within the texture file.
+<pre>
+	[Bytes 2-10]    char Unknown1[9];
+</pre>
+</div>
+
+		<h3 id="rdbaction">Action Record (10 Bytes):</h3>
+
+   3D objects may point to an Action Record in ActionOffset.
+<pre>
+	[Bytes 0-4] char DataEntry[5];
+	[Bytes 5-8] long TargetOffset;
+	    The offset from the beginning of the RDB file to the Object
+	    Record describing this action's target, negative if there is no target.
+	[Byte 9]    char Type;
+	    Probably affects how the DataEntry field is interpreted.
+	    Ranges from 0 to 100, but most entries use these values:
+	        0x00: Probably used to indicate no action.
+	        0x01: Object Translation
+	        0x08: Object Rotation
+</pre>
+<p>The target object (and the target object of its action, etc.) is
+activated simultaneously with this object. In this way targets can be
+chained together for several simultaneous effects.</p>
+
+   Both Rotation and Translation actions format the DataEntry
+   field in this way:
+<pre>
+	[Byte 0]       char Axis;
+	    Takes on values ranging from 1 to 99, but most entries
+	    use these values:
+	        0x01: negative x
+	        0x02: positive x
+	        0x03: negative y
+	        0x04: positive y
+	        0x05: negative z
+	        0x06: positive z
+	    (Maybe a bit field?)
+	[Bytes 1-2] unsigned short Duration;
+	    Determines how long the object takes to reach its destination.
+	[Bytes 3-4] unsigned short Delta;
+	    The amount to move along/around the specified axis.
+</pre>
+Rotations rotate about the Axis while translations move along them.
+
+<p>Doors do not appear to use the Action Record. It is not
+known whether teleporting walls use it. Switches, levers, and
+moving platforms appear to use it.</p>
+
+<p>For example, in Privateer's Hold there is a switch next to a platform
+with a throne on it. Flipping the switch invokes the switch's action,
+which rotates it into the flipped position. That action targets the
+platform, which makes it rise. The platform's action targets the throne,
+which also rises. All these are performed simultaneously.</p>
+
+</div>
+
+</body></html>
+

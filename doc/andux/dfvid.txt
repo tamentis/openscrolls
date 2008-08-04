@@ -1,0 +1,319 @@
+																				-
+                    Daggerfall VID File Format
+                         April 14, 2007
+
+This is the format for the .VID files that come with TES:Daggerfall. 
+They contain short videos used in the game for intros and for the 
+main quest.
+					
+
+  OVERALL VID FORMAT
+=======================================
+The overall file is composed of a main header followed blocks of 
+audio and video data. 
+
+	Bytes   1 -  15:	Header
+	Bytes  16 - EOF: 	Various Blocks
+			...
+
+The type of block is identified by the first byte in the block.
+
+	0x01 = Video, Compression #1
+	0x02 = Palette
+	0x03 = Video, Compression #2
+	0x04 = Video, Compression #3
+	0x14 = End Of File
+	0x7C = Audio, Start Frame
+	0x7D = Audio
+
+
+  HEADER
+=======================================
+The header is always the first 15 bytes of the VID file.
+
+	Bytes   1 -   3:	ASCII	Always "VID"
+	Bytes   4 -   5:	INT16	Always 0x00 02 (512)
+	Bytes   6 -   7:	INT16	Number of Frames
+	Bytes   8 -   9:	INT16	Video Frame Width (256 or 320)
+	Bytes  10 -  11:	INT16	Video Frame Height (200)
+	Bytes  12 -  13:	INT16	Global Delay value?
+	Bytes  14 -  15:	INT16	0x0E 00 (14) in all DF VIDs
+
+
+  PALETTE BLOCK - 0x02
+=======================================
+This usually only appears immediately after the header.
+
+	Bytes  1  -  1 :	CHAR8	Block Type (0x02)
+	Bytes  2  - 769:	RGB	256-color VGA palette. Each palette entry is
+	                		composed of 3 triplets (R/G/B) ranging in 
+	                		value from 0 to 63.
+
+Experimentation has revealed that the Daggerfall engine does corectly 
+interpret palette blocks inserted later in the file, though none of 
+the videos included with the game make use of this functionality.
+
+
+  AUDIO BLOCK - 0x7C
+=======================================
+This is usually the first audio block in the file.
+
+	Bytes   1 -   1:	CHAR8	Block Type (0x7C).
+	Bytes   2 -   3:	INT16	Unknown; always 0.
+	Bytes   4 -   4:	CHAR8	Sound Blaster DAC init value (usually 0xA6)
+	Bytes   5 -   6:	INT16	Audio block data length
+	Bytes   7 - ???:	AUDIO	8-bit Audio data
+
+The DAC init value corresponds to the audio sample rate as follows:
+
+	InitVal = 256 - (1000000 DIV SampleRate)
+	SampleRate = 1000000 / (256 - InitVal)
+
+
+  AUDIO BLOCK - 0x7D
+=======================================
+The audio blocks hold the audio for each frame.
+
+	Bytes   1 -   1:	CHAR8	Block Type (0x7D).
+	Bytes   2 -   3:	INT16	Audio block data length
+	Bytes   4 - ???:	AUDIO	8-bit Audio data
+
+
+  VIDEO BLOCK - 0x01, 0x03 and 0x04
+=======================================
+The basic structure of the video blocks is all the same:
+
+	Bytes   1 -   1:	CHAR8	Block Type (0x01, 0x03 or 0x04).
+	Bytes   2 -   3:	INT16	Delay value
+	Bytes   4 - ???:	VIDEO	Compressed video data.
+
+Each type of video block has a slightly different compression format 
+(see below for details). Unfortunately there is no record size so you 
+must completely parse the video data in order to find the next block.
+[There is only one frame per block, so you can stop parsing video 
+when InputByte == 0 or Bytes Copied >= (Frame Width * Frame Height).
+	--Andux]
+
+It is important to note exactly how the video frames go together. 
+Only the 0x03 video block actually contains a full frame of data. 
+The 0x01 and 0x04 types only contain the pixels that have changed 
+from the previous frame. Thus, generally in order to render any one 
+frame you must also render all previous frames up to the first 0x03 
+video block.
+
+Corroded Coder came up with the following:
+
+	audio_block_size = (header_delay + frame_delay) * 185
+	This is *exact* (for all except the final frame which is only 
+	partial). So frame time for no-audio = 
+	((header_delay + frame_delay) * 185)/11025. (from my memory). 
+	This would of course be affected by a change in audio speed
+
+Note that audio_block_size is the size of the audio block which comes 
+immediately *before* the current video frame in the VID file.
+
+[Further update: After doing some calculations based on the new 
+(relatively speaking) sample rate formulas (cf. audio block type 0x7C 
+above), I have determined that one delay unit is equal to 1/60th of a 
+second (or as close to it as possible, given all the wacky sample 
+rates and integer division). 
+Thus, CC's formulas may be adapted to other sample rates as follows:
+
+	AudioGranuleSize = SampleRate DIV 60
+
+	AudioBlockSize = (HeaderDelay + FrameDelay) * AudioGranuleSize
+	FrameDisplayTimeInSeconds = (HeaderDelay + FrameDelay) / 60
+
+Note, however, that I have not yet had a chance to test this with the 
+Daggerfall player.	--Andux]
+
+
+  VIDEO COMPRESSION - 0x01
+=======================================
+The video data in a form of RLE compression with the following 
+algorithim used for uncompression:
+
+	InputByte = Read 1 Byte From File
+
+	if ( InputByte >= 0x80 )
+		RunLength = InputByte - 0x80
+		[Skip RunLength pixels in the video frame]
+
+	else if ( InputByte == 0 )
+		End of Video Frame
+
+	else 
+		RunLength = InputByte
+		Read RunLength Bytes From File and Copy to Frame
+	endif
+
+
+  VIDEO COMPRESSION - 0x03
+=======================================
+This is usually the first video block in the file and contains a 
+full frame of video in regular RLE format. The basic uncompressing 
+algorithm is:
+
+	InputByte = Read 1 Byte From File
+
+	/* RLE compression */
+	if (InputByte >= 0x80) 
+		NumberofBytes = InputByte - 0x80
+		InputByte = Read 1 Byte From File
+		Add NumberofBytes of InputByte to Video Frame
+
+	else if (InputByte == 0)
+		End of Video Frame
+
+	else 
+		NumberofBytes = InputByte
+		Read NumberofBytes from File and Copy to Video Frame
+	endif
+
+
+  VIDEO COMPRESSION - 0x04
+=======================================
+This format has an extra header variable:
+
+	Bytes   4 -   5:	INT16	Y-Offset. The video frame data 
+	                	starts at this line in the frame.
+
+What follows is the video frame data in the same format as the 0x01 type.
+
+
+  END OF FILE - 0x14
+=======================================
+This block always occupies the last byte the file.
+
+	Bytes   1 -   1:	CHAR8	Block Type (0x14).
+
+[This is only included for completeness.	--Andux]
+
+
+  CREDITS
+=======================================
+
+	Sean Weinmann (andux@bigfoot.com)
+		http://meepo.dnsalias.org/
+
+	Dave Humphrey (dave@uesp.net)
+		http://www.uesp.net/
+
+	Gavin Clayton (interkarma@yahoo.com.au)
+		http://www.dfworkshop.net/
+
+	Corroded Coder (corrodedcoder@hotmail.com)
+
+
+  PROGRAMMING EXAMPLE (2003-12-21)
+=======================================
+For those of you (like me) who find it difficult to get your heads 
+around a file format with specifications alone, here is a breakdown 
+(in English) of the inner workings of a VID reader, based on my own 
+audio/frame dumper app. Hopefully, you will find it helpful.
+	-- Andux
+
+
+Be a good little programmer and initialize your variables:
+
+VID Header:
+	Three (3) Bytes for confirming the file starts with "VID" (and a constant for comparison).
+	One INT16 for reading that mysterious 512 (and maybe a const for comparison).
+	One INT16 for the Frame Count.
+	One INT16 for the Frame Width.
+	One INT16 for the Frame Height.
+	One INT16 for the Global Delay (?).
+	One INT16 for Unknown Value 1.
+
+One (1) byte for the Block Type
+
+Palette Block:
+	768 bytes (or an array, whatever) for the 256-Color VGA Palette.
+
+Audio Block 0x7C:
+	One INT16 for Unknown Value 2.
+	One (1) byte for the Playback Rate.
+Both Audio Blocks:
+	One INT16 for the Audio Block Size.
+	One big buffer (~16K to be safe) for the Audio Data (or a bunch of smaller ones).
+
+Video Block:
+	One INT16 for Frame Delay.
+	One INT16 for the Y-Offset (Block Type 4 only).
+	One (1) byte for the Run Length.
+	One (1) byte for the Pixel Value (Block Type 3 only).
+	127 bytes for the Image Data.
+
+	(Frame Width * Frame Height) bytes for the FrameBuffer (64K ought to be enough for anyone!).
+
+
+Ensure the VID File exists, and open it.
+
+Read 3 ASCII bytes from the beginning of the VID File; if they read "VID", continue.
+Read an INT16; it should have the value 512.
+Read an INT16 containing the Frame Count.
+Read an INT16 containing the Frame Width.
+Read an INT16 containing the Frame Height.
+Read an INT16 containing the Global Delay.
+Read an INT16 containing Unknown Value 1.
+
+Calculate FrameBuffer Size by multiplying Frame Width and Frame Height.
+
+Do the following:
+	Read one byte containing the Block Type.
+
+	If the Block Type has the value 2, then:
+		Read 768 bytes containing the 256-Color VGA Palette.
+
+	Otherwise, if the Block Type has the value 124, then:
+		Read or skip an INT16 containing Unknown Value 2.
+		Read one byte containing the Playback Rate.
+		Read an INT16 containing the Audio Block Size.
+		Read (Audio Block Size) bytes of 8-bit, Unsigned, 11025Hz Audio Data.
+
+	Otherwise, if the Block Type has the value 125, then:
+		Read an INT16 containing the Audio Block Size.
+		Read (Audio Block Size) bytes of 8-bit, Unsigned, 11025Hz Audio Data.
+
+	Otherwise, if the Block Type has the value 1, 3, or 4, then:
+		Read or skip an INT16 containing Unknown Value 2.
+
+		If the Block Type has the value 4, then:
+			Read an INT16 containing the Y-Offset.
+			Jump to offset (Y-Offset * Frame Width) in the FrameBuffer.
+
+		Otherwise, jump to the beginning of the FrameBuffer.
+
+		Do the following:
+			Read one byte containing the Run Length.
+
+			If the Run Length has a value greater than 127, then:
+				If the Block Type has the value 3, then:
+					Read one byte containing the Pixel Value.
+					Copy the Pixel Value over the next (Run Length - 128) pixels in the FrameBuffer.
+				Otherwise, just increment your offset in FrameBuffer by (Run Length - 128).
+
+			Otherwise, if the Run Length has a value greater than 0, then:
+				Read (Run Length) bytes containing the Image Data.
+				Copy the Image Data over the next (Run Length) bytes of the FrameBuffer.
+
+			Throughout all of this, you should ensure that you do not overflow the FrameBuffer.
+
+		Repeat until your offset in the FrameBuffer is equal to the FrameBuffer Size, or (Run Length) == 0.
+
+		Copy the FrameBuffer to memory, screen, disk, or whatever.
+
+	Otherwise, if the Block Type has the value 20, then:
+		You have reached the end of the VID File.
+
+	Otherwise, if the Block Type has the value 0, and we just ended a frame, then:
+		Go back to the start of the loop (this is not a block, just a bit of format weirdness).
+
+	Otherwise, you are horribly lost, and should print debug info and probably check with the user before attempting to continue.
+Repeat until you reach the end of the VID File.
+
+
+Note that this is just the basic functionality for interpreting VID 
+files. In an actual player, you would probably want to cache the next 
+couple KB or so of the file to improve speed on video blocks, and 
+generally optimize the hell out of the code.

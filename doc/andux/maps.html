@@ -1,0 +1,485 @@
+<html><head><title>MAPS.BSA</title>
+
+</head><body>
+
+<h1 align="center">MAPS.BSA</h1>
+Overall, the Maps.BSA file contains 61 total regions with a combined total
+of 15251 locations, with 4232 of these being dungeon types.
+
+<h2 id="toc">Contents</h2>
+<ul>
+	<li><a href="#layout">General File Layout</a></li>
+	<li>MapPItem<ul>
+		<li><a href="#poff">Location Offset Section</a></li>
+		<li><a href="#pdata">Location Record Data</a><ul>
+			<li><a href="#plrec">Location Records</a></li>
+			<li><a href="#pdrec">Dungeon Records</a></li>
+			<li><a href="#plpre">Location PreRecords Sub-Format</a></li>
+			<li><a href="#plpost">Location PostRecords Sub-Format</a></li>
+			<li><a href="#pdpost">Dungeon PostRecords Sub-Format</a></li>
+		</ul></li>
+	</ul></li>
+	<li>MapDItem<ul>
+		<li><a href="#doff">Dungeon Offset Section</a></li>
+		<li><a href="#ddata">Dungeon Record Data</a></li>
+	</ul></li>
+	<li><a href="#maptable">Location Table Section (MapTable)</a></li>
+	<li><a href="#mapnames">Location Name Section (MapNames)</a></li>
+	<li><a href="#mapdir">Map Directory</a></li>
+</ul>
+
+
+<h2 id="layout">General File Layout</h2>
+
+<p>The file starts with a short BSA header followed by the map data as sorted
+by map region (the provinces such as Wayrest, Glenpoint, Daggerfall etc...
+in the game).  Each region is furthur divided into other data sections.
+Each data section is referenced by a directory entry which occurs at the
+end of the file as per a usual BSA file.</p>
+<pre>
+	BSA Header
+	Begin Region
+	  Location Offset Section 	} MapPItem
+	  Location Record Data		} MapPItem
+	  Dungeon Offset Section	} MapDItem
+	  Dungeon Record Data		} MapDItem
+	  Table Data			} MapTable
+	  Name Data			} MapNames
+	End Region
+	...Other Regions...
+	Map Directory
+</pre>
+
+<h2 id="mappitem">MapPItem</h2>
+<div style="margin: 0px 1em;">
+<h3 id="poff">Location Offset Section</h3>
+
+<p>Offset sections appear before each section of town record data.  It is
+merely a list of 4 byte long values which point to the start of a location
+record relative to the end of the offset section.</p>
+
+
+<h3 id="pdata">Location Record Data</h3>
+
+Each record is pointed to by one offset record in the preceding offset
+section.  Records are variable length. Contains all locations of the
+region (town, dungeon, house, etc...).
+<pre>
+	[Bytes 0-3]	long PreRecordCount
+		Gives the number of 6 byte records which follow.  This value
+		can be 0x00000000 indicating that no records exist.  The
+		record data has no visible effect on the location. Values 
+		here range from 0 to 555 (confirmed) (around 20% of location
+		and dungeon records have no prerecords).  Total of 569407
+		prerecords in the MAPS.BSA file.
+	[Bytes 4...]	unsigned char PreRecords[6]
+		The 6 byte record data if there is any.
+	[Bytes ...]	Header Information, 0x47 (71) bytes			
+		[Bytes 0-3]   	long  OneValue1 = 0x00000001;
+			Always this value in both location and dungeon records
+			(confirmed).
+
+		[Bytes 4-5]   	short NullValue1;
+		[Byte  6]     	char  NullValue2;
+			Always 0 (confirmed).		
+		[Bytes 7-10]  	long  XPosition;
+			Position of the location in game position units.
+			Values can range from 51,200 (far West) to around 
+			32,389,120 (far	East) (confirmed).
+		[Bytes 11-14] 	long  NullValue3;
+			Always 0 (confirmed).
+		[Bytes 15-18] 	long  YPosition;
+			Position of the location in game position units.
+			Values can range from around 40,961 (far South) to
+			16,332,801 (far North) (confirmed).
+		[Bytes 19-22] 	long  Unknown1;
+			Location records always have 0x00008000 (32768).
+			In dungeon records this value is always 0 (confirmed).
+		[Bytes 23-26] 	long  Unknown2;
+			Values range from 0 to 18 in location records (is 0 
+			~75% of the time).  In dungeon records this value is
+			always non-zero in the range 65536 to 589824
+			(confirmed).
+		[Bytes 27-30] 	long  Unknown3;
+			Almost always non-zero in all records.  Location record
+			values range from 0 to 1832, dungeon values range from
+			0 to 684 (confirmed).
+		[Byte  31-32] 	short OneValue2 = 0x0001;
+			Always 1 in both dungeon/location records (confirmed).
+		[Bytes 33-34] 	short LocationID;
+			The unique location ID which is used for quests and
+			probably other things.
+		[Bytes 35-38]	long NullValue4;
+			Always 0 in both dungeon/location records (confirmed).
+		[Bytes 39-40]	short Unknown4;
+			Always 0 in location records and always 1 in dungeon
+			records (confirmed).
+		[Bytes 41-44]	long Unknown5;
+			Always 0 in location records and takes a variety of
+			values in dungeon records (always non-zero) (confirmed).
+			These last two might indicate the presence and size
+			(or offset to) dungeon specific data.
+		[Bytes 45-70] 	char NullValue5[26];
+			Always 0 in both dungeon/location records (confirmed).
+	[Bytes ...] char LocationName[32]
+		Gives the location name.  Data is always 32 bytes in size and
+		string should be NULL terminated. Any extra data after the 
+		string is ignored. The name is used when you enter the location
+		but not used when on the travel map (the Name Table is used for
+		that).
+	[Bytes ...] char Unknowns[9];
+		Unknown values
+	[Bytes ...] short PostRecordCount
+		Gives the number of records which follow.  Records appear
+		to be of fixed length 0x1A (26) bytes.  Always 0x0000 in dungeon
+		records.
+</pre>
+From this point on the dungeon/location records differ slightly.
+<div style="margin: 0px 1em;">
+<h4 id="plrec">Location Records</h4>
+
+<pre>
+	[Bytes ...] char Unknowns1[5];
+		Unknown values.
+	[Bytes ...] char LocationPostRecords[26][]
+		See the Location PostRecords Format section below.  Each record is
+		0x1A (26) bytes in size. 
+	[Bytes ...] char AnotherName[32];
+		Appears to be another name for the location but its purpose is 
+		unknown.  Changing it has no visible effect.
+	[Bytes ...] long Unknown6;
+		This value is the same as the first 4 bytes in the MapTable for
+		the location.  Another location ID perhaps.
+	[Bytes ...] char Unknowns2[4];
+	[Bytes ...] byte BlockWidth;
+	[Bytes ...] byte BlockHeight;
+		Range from 1 to 8 and give the size of the location in blocks. The
+		BlockWidth*BlockHeight will give the number of block file numbers
+		in the following sections.
+	[Bytes ...] char Unknowns3[7];
+	[Bytes ...] char BlockFileIndex[64];
+		Each can be an index, from 0 to 44, of a block file.  See
+		Appendix C for more information.  Usually just the first index
+		is used and the rest are zero.
+	[Bytes ...] char BlockFileNumber[64];
+		Similarily gives the block file number, from 0 to 42.
+	[Bytes ...] char BlockFileChar[64];
+		Similarily gives the block file character, from 0 to 143.  See
+		Appendix C for possible values.
+	[Bytes ...] char Unknowns4[32];
+		Typically zero but almost all values range from 0 to 122.
+	[Byte  ...] char Unknown5;
+		Ranges from 0 to 18, usually 0.
+	[Byte  ...] char Unknown6;
+		Ranges from 0 to 22, usually 0.
+	[Bytes ...] char NullValues1[9];
+		Always 0 (confirmed).
+	[Bytes ...] long Unknowns7[22];
+	[Bytes ...] char NullValues2[40];
+		Always 0 (confirmed).
+	[Bytes ...] long Unknown8;
+</pre>
+
+<h4 id="pdrec">Dungeon Records</h4>
+<pre>
+	[Bytes ...] long Unknown6; 
+	[Bytes ...] long Unknown7; 
+	[Bytes ...] short NumDungeonPostRecords;	
+		Gives the number of dungeon post records.
+	[Bytes ...] char Unknown8[5]
+	[Bytes ...] char DungeonPostRecords[][4];
+		Each is 4 bytes in size.
+	[Bytes ...] char Padding[];
+		Variable size of data which appears to always be zero and may 
+		simply be padding for the dungeon post records. The padding
+		size is equal to  (128 - NumDungeonPostRecords*4).
+</pre>
+
+<pre>
+2) Location Types
+
+In Appendix B, the location types are listed. 0xAC (172) is listed as Dark Pink, 
+but it looks red to me. In fact, the difference between  0xAC and 0x8C is a mystery.
+
+Looking at the locations corresponding to each of these, I have come up with names for them:
+
+0x84 (132) = Major Dungeon
+0x87 (135) = Fortress (Large Dungeon)
+0x8A (138) = Ruins (Small Dungeon)
+0x8C (140) = Graveyard
+0x8D (141) = Coven
+
+0xA0 (160) = Large Town
+0xA1 (161) = Medium Town
+0xA2 (162) = Small Town
+0xA3 (163) = Farmstead
+0xA6 (166) = Tavern
+
+0xA5 (165) = Temple
+0xA9 (169) = Shrine
+
+0xA8 (168) = Palace / Manor
+0xAB (171) = Shack
+0xAC (172) = Graveyard
+</pre>
+
+<strong>UPDATE!</strong> From ATLAS.C:
+
+<pre>
+/*	The color code has a fine structure as well.
+	When a new character is rolled, the sites tagged
+	0x8n are rolled against to determine which of them
+	are eligible to include on the overhead map from
+	the beginning.  All other 0x8n sites are initially
+	hidden on the map.  Conversely, 0xan sites are never
+	obscured on the overhead map.  0xad (not shown) is the
+	code assigned to the ship sites. */
+</pre>
+
+
+<h4 id="plpre">Location PreRecords Sub-Format</h4>
+
+The format for the 6 byte prerecord data found in the location and
+dungeon record data is as follows:
+<pre>
+	[Bytes   0-1]	short PostRecordIndex;
+		Dungeon Records:
+			0xFFFF - Always this value (confirmed)
+		Location Records:
+			Appears to give be postrecord index which the prerecord
+			may apply to. The same index may be repeated in several 
+			prerecords.
+	[Byte    2]	char  NullValue;
+		Always 0x00 in both dungeon/location records (confirmed).
+	[Byte    3]	char Unknown3;
+		Dungeon Records:
+			0x00 - Only 23 records.
+			0x10 - About half of records (10334).
+			0x40 - About half of records (10415).
+			0x80 - Only 17 records.
+		Location Records:
+			0x10 - About 20% of records (106905).
+			0x20 - Around half of records (248908).
+			0x30 - Only 100 records.
+			0x40 - About 10% of records (59384).
+			0x50 - Only 54 records.
+			0x60 - Only 53 records.
+			0x80 - Only 17 records.
+			0xA0 - About 20% of records (133138).
+			0xB0 - Only 51 records.
+			0xE0 - Only 25 records.
+	[Byte    4]	char Unknown4;
+		Dungeon Records:
+			Always non-zero and usually less than 0x0A but ranges
+			up to 0xE7 (231).
+		Location Records:
+			Takes on a wide range of values 0-0xFF, usually
+			non-zero (confirmed).
+	[Byte    5]	char Unknown5;
+		Dungeon Records:
+			0x00 - Only in 32 records
+			0x01 - Only in 8 records
+			0xFA - Occurs in most records (20749)
+		Location Records:
+			Usually always less than 0x09 but 166572 records have
+			the value 0xFA.
+</pre>
+The arrangement of variables above is arbitrary as the actual purpose of
+data is currently unknown.  PreRecords usually appear in location records.
+Only 20789 (3.7%) of the 569407 total prerecords in MAPS.BSA occur in
+dungeon records.  The number of prerecords is generally smaller in
+dungeon records than location records as well.  Prerecord numbers range
+from 0 to 27 in dungeon records while 0 to 555 in location records. The
+data has no visible effect on the location.  The data can be mangled or
+simply removed with no apparent effect on the location.
+
+
+<h4 id="plpost">Location PostRecords Sub-Format</h4>
+
+Records which appear after the location name in the location record are
+0x1A (26) bytes in size and have the format listed below.  Location
+postrecords only occur in location records, not dungeon which have their
+own post record format.  The number of prerecords in location records
+range from 0 to 329 with a total of 328499 in the MAPS.BSA.  There are
+usually no postrecord information (97%).
+<pre>
+	[Bytes 0-1] 	short HouseNameType;
+		Affect the generation of the house name.  Ranges from 0 to
+		0x81DD (33245).
+			00 00 = The Dancing Chasm (Tavern)
+			01 00 = The Knave and Scorpion (Tavern)
+			02 00 = The Dancing Chasm (Tavern)
+			00 09 = The Silver Scorpion (Tavern)
+			BA 29 = The Golden Stag (Tavern)
+			BB 29 = People of Alik'r (Temple)
+			EA 7E = The Queen's Dungeon (Tavern)
+	[Bytes  2-17] 	char NullValues[16];
+		Always 0 (confirmed).
+	[Bytes 18-19]	short Faction;
+		Faction number from faction.txt. Usually zero and ranges from 
+		0 to 852.
+	[Bytes 20-21]	short Sector;
+		This value seems to generally increase with each postrecord.
+		Changing this number at all crashes the game when the location
+		is loaded. Always non-zero and ranges from 4 to 2329.
+	[Bytes 22-23]	short LocationID;
+		This value is always the same as the location ID in the the 
+		location record header (confirmed).
+	[Byte 24] 	char HouseType;
+		Something to do with the house name or type, ranges from
+		0 to 0x18 (24).
+			0x00 = Alchemist
+			0x01 = For Sale
+			0x02 = Armorer
+			0x03 = Bank
+			0x04 = Town4
+			0x05 = Book store
+			0x06 = Clothing shop
+			0x07 = Furniture shop
+			0x08 = Jeweler
+			0x09 = General store
+			0x0A = Library
+			0x0B = Guild hall
+			0x0C = Pawn shop
+			0x0D = Weapon shop
+			0x0E = Temple
+			0x0F = Tavern
+			0x10 = Palace
+			0x11 = House1
+			0x12 = House2
+			0x13 = House3
+			0x14 = House4
+			0x15 = House5
+			0x16 = House6
+			0x17 = Town23
+	[Byte 25] 	char HouseQuality;
+		Always non-zero and ranges from 1 to 0x14 (20).
+		Divide this by 4 to get the rating on the rusty-
+		relics..incense scale.
+</pre>
+
+<h4 id="pdpost">Dungeon PostRecords Sub-Format</h4>
+<pre>
+  The Dungeon PostRecords are each four bytes long and have the following 
+  format:
+
+	[Byte 0] signed char x
+	[Byte 1] signed char y
+	[Byte 2] unsigned char blockNumber (low byte)
+	[Byte 3] 
+	    [bits 0-1] (high bits of blockNumber)
+	    [bit 2] Set to 1 if the player starts in this block, 0 otherwise
+	    [bits 3-7] unsigned char blockType
+</pre>
+<p>The blockType is actually an index into a character array at offset
+
+001B:3E44 of Fall.exe:</p>
+
+<code>const char blockTypes[6] = {'N', 'W', 'L', 'S', 'B', 'M'};</code>
+
+<p>When the appropriate character is concatenated to the seven-digit
+decimal representation of the blockNumber, the name of an RDB file is
+constructed. (For example, "N0000019.RDB")</p>
+
+<p>The x and y values place the block on a 2D grid. Generally, the central
+block of the dungeon is at (0,0).</p>
+
+<p>Note: the only file that requires the two extra bits of blockNumber is
+S0000999.RDB. This file is only used in Privateer's Hold.</p>
+
+<p>Also note: there are no RDB files that begin with "L" and there are no
+Dungeon Post-Records that refer to L.</p>
+
+</div></div>
+<h2 id="mapditem">MapDItem</h2>
+<div style="margin: 0px 1em;">
+<h3 id="doff">Dungeon Offset Section</h3>
+
+Dungeon Offset sections appear before each section of dungeon record data
+and follow immediately after the end of the town record data for a region.
+<pre>
+	[Bytes 0-3] long DungeonCount
+		The number of dungeon records which follow.
+	[....] Offset Section Records
+		Records are 8 bytes in length and have the following structure:
+			long Offset   = Offset to record data from end of the
+					offset section
+			short Number  = 0x0100 usually?
+			short Unknown = Another increasing number
+</pre>
+
+<h3 id="ddata">Dungeon Record Data</h3>
+
+Each record is pointed to by one dungeon offset record in the preceding
+dungeon offset section for the region.  Records are variable length. Only
+locations that are dungeons, ie, that have new interior maps, are included
+here.  Assumably this section defines the map 'blocks' which make up the
+dungeon. For now this appears to be the same as the Location Record Data.
+
+</div>
+<h2 id="maptable">Location Table Section (MapTable)</h2>
+
+Contains data related to to the locations in the previous sections for the
+current region.  Starts immediately after the last dungeon record data.
+The number of section records is the number of the towns in the current
+region.  Each record is 17 bytes in size and appears to be a bit field
+(bit fields are identified by the 6.# where # here would represent the
+#th bit in the 6th byte, the 8th bit would be the 0th bit in the next
+byte).
+<pre>
+	[Byts 0-3]    long Unknown1; (32 bits)
+		This number is repeated in the location record.  Perhaps a 
+		unique identifier of some sort.
+	[Bytes 1-4]   char Unknown2; (8 bits)
+		Possibly always 0.
+	[Bytes 5-6.1]   unsigned int XPosition; (17 bits)
+		Gives the X-position of the location for display on the travel
+		map.  One pixel appears to equal 128 units with the origin
+		at the bottom-left of the map.  Values should range from
+		0 (far left) to 128000 (far right) (unconfirmed). Each unit
+		is equal to about 256 position units in the game.
+	[Bytes 6.2-8]   int LocationType; (15 bits)
+		Type of the location (home, dungeon, town, etc...).  This
+		determines the color of the location on the travel map.
+	[Bytes 9-10]  unsigned short YPosition; (16 bits)
+		Gives the Y-position of the location for display on the travel
+		map. Ranges from 0 (map bottom) to 64000 (map top) (unconfirmed).
+	[Bytes 11-12] short Value2; (16 bits)
+	[Bytes 13-16] long Value3; (32 bits)
+
+</pre>
+
+<h2 id="mapnames">Location Name Section (MapNames)</h2>
+
+Repeats all the town names in the current region.  Each town name is
+32 bytes, NULL terminated, and starts immediately following the town
+name header section.  The town name offset section for the next region
+starts immediately after this town name data.  This is the name used on
+the travel map.
+<pre>
+	[Bytes 0-3]  long LocationCount;
+		Number of locations in list.  This value might be used to
+		determine the total number of locations in a region.
+	[Bytes 4...] char Names[32][...];
+		All the location names (max 32 characters including NULL
+		terminator).
+</pre>
+
+<h2 id="mapdir">Map Directory</h2>
+
+The map directory is the last 4464 bytes of the Maps.BSA file and is the
+usual 0x0100 BSA directory type.  It contains 248 records of 18 bytes each
+(for 62 regions, 000 to 061).  The filenames are of the form
+<dl>
+<dt>MAPPITEM.0##</dt><dd>Place item offset data and records</dd>
+
+<dt>MAPDITEM.0##</dt><dd>Dungeon offset data and records</dd>
+<dt>MAPTABLE.0##</dt><dd>Map table</dd>
+<dt>MAPNAMES.0##</dt><dd>Name table</dd>
+</dl>
+where ## ranges from 00 to 61 (for each region).  Assumably the
+DF engine requests the data by this filename. See Appendix A for
+a list of which regions correspond to which values.
+
+</body></html>
+

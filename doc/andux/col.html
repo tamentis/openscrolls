@@ -1,0 +1,17 @@
+<html><head><title>COL Files - Daggerfall Format Registry</title>
+
+</head><body><H1>*.COL</h1>
+
+This is an Autodesk Animator Pro format:
+
+<pre>	Bytes  1 -   4	INT32	File size (always 776)
+	Bytes  5 -   6	INT16	Format ID (always 0xB123)
+	Bytes  7 -   8	INT16	Format version (always 0)
+	Bytes  9 - 776	CHARS	256-color, 24-bit RGB palette
+</pre>
+
+Note that the palette is a full 24-bit palette, with values in the range 0..255 for every color channel;
+no SHR or multiplication ops are necessary.
+
+</body></html>
+

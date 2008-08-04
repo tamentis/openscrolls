@@ -1,0 +1,92 @@
+																				-
+                    Daggerfall SKY File Format
+                         February 23, 2004
+
+This is the format for the SKY##.DAT files that come with TES: 
+Daggerfall. They contain the backdrop images and palettes used in 
+the outdoor game environment.
+					
+
+  OVERALL SKY FORMAT
+=======================================
+The overall file is divided into three sections:
+
+	Bytes      1 -   24832	Main palettes.
+	Bytes  24833 -  549120	Fade-in lookup tables.
+	Bytes 549121 - 7758080	Sky images.
+
+
+  MAIN PALETTE SECTION
+=======================================
+The palette section consists of 32 records with the following format:
+
+	Bytes  1 -   4	INT32	Record size (always 776).
+	Bytes  5 -   8	INT32	Unknown (always 45347).
+	Bytes  9 - 776	BYTES	256-color, 24-bit RGB palette.
+
+Which record is used depends on what time it is in the game.
+
+Only the first 32 colors in the palette vary from record to record.
+Surprisingly, the palette's color channels have values ranging from
+0 to 255, rather than the usual 0 to 63 of ordinary VGA palettes.
+
+
+  OBJECT FADE-IN LOOKUP TABLES
+=======================================
+These lookup tables are used when "fading in" objects from beyond 
+the edge of the player's visibility range. There are 32 sets (one 
+for each palette) of 64 tables of 256 bytes each.
+
+Rather than explain it in plain English, I am going to throw some 
+heavily-commented pseudocode at you:
+
+	for each visible surface do
+	  Z = SomeFunctionOf(SurfacePos, PlayerSightRange)
+	  /* Z = surface's distance from the edge of the 
+	   * player's visibility range. Z of 0 means the 
+	   * surface is right at the edge. Z of 63 means 
+	   * the surface is not faded at all. */
+	  for each pixel do
+	    PixelColor = Shifted(PaletteNumber, Z, PixelColor)
+	    /* Shifted(Set, Table, Color) effectively returns 
+	     * the value of the byte at (zero-based) offset
+	     * (24832 + (Set * 16384) + (Table * 256) + Color)
+	     * in the current SKY##.DAT file. */
+	  loop
+	loop
+
+
+  SKY IMAGES
+=======================================
+There are 64 images in the file. Each image is 512 by 220 pixels 
+in size, and is stored in uncompressed 8-bit-per-pixel format. 
+The images are divided into two sets:
+
+	Images  0 - 31	Series with no sun.
+	Images 32 - 63	Series with sun.
+
+The images in each set are assigned one of the 32 palette records 
+in ascending order (i.e., the first image in each set uses the first 
+palette record, the second one uses the second palette, and so on).
+
+Each image is used for only half the sky; initially, images from the 
+first series (0-31) are assigned to the western sky, and image from 
+the second (32-63) are used for the eastern sky. At noon, the set 
+assignment is switched, and the sets are played backwards; this 
+allows the effect of the sun rising in the east and setting in the 
+west, without the need to store large images of the whole sky.
+
+
+  CREDITS
+=======================================
+
+	Corroded Coder (corrodedcoder@hotmail.com)
+
+	Gavin Clayton (interkarma@yahoo.com.au)
+		http://www.svatopluk.com/interkarma/
+
+	Sean Weinmann (andux@bigfoot.com)
+		http://meepo.dnsalias.org/
+
+Some credit should also be given to Dave Humphrey, as this document 
+blatantly rips off his documentation style.

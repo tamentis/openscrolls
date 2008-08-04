@@ -1,0 +1,16 @@
+This looks like a sky description.
+
+Looks like the first 24k+256 bytes are somewhat of a palette. With 
+palettes of 768 bytes, we can assume we have 32 different palettes.
+
+With 32 palettes, we can also assume we have 32 differents times in the day.
+
+Starts at 24832:
+The next part is either thumbnails or maybe clouds ? Those blocks seems
+to be 16 x 64 (1024bytes)
+(520kB)
+
+Starts at 549120:
+The rest seems to be the same piece of sky at different hours
+of the day. 512px wide I assume, probably 220px high.
+64 * 512 * 220 = 7208960

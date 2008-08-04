@@ -1,0 +1,12 @@
+Those are very gory sources. If you want to help, you are highly welcome ;)
+
+Change ACD in openscrolls.h to the appropriate path for Daggerfall CD. This
+is ugly, but keep in mind it's dev pre-alpha unstable ;)
+
+To build type make. To install type make install. Yeah.
+
+TODO:
+ - Add binding to PageUp/PageDown on the SkyViewer
+ - Add font support to display text (what sky you are watching).
+
+
