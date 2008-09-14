@@ -25,7 +25,6 @@
 
 #include <SDL.h>
 
-#define ACD "/home/tamentis/games/openscrolls/CD/DAGGER/ARENA2/"
 
 typedef struct img_struct {
 	char *fullpath;

@@ -46,16 +46,10 @@ load_palette(char *file)
 	struct stat sb;
 	uint32_t size;
 
-	/* Which pal ? (full path or relative to ACD) */
-	if (file[0] == '/') {
-		int length = strlen(file);
-		palfile = malloc(length);
-		strlcpy(palfile, file, length+1);
-	} else {
-		j = strlen(file) + strlen(ACD) + 1;
-		palfile = malloc(j);
-		snprintf(palfile, j, ACD "%s", file);
-	}
+	/* Which pal ? (full path) */
+	j = strlen(file) + 1;
+	palfile = malloc(j);
+	snprintf(palfile, j, "%s", file);
 
 	/* Check size */
 	stat(palfile, &sb);
@@ -218,9 +212,9 @@ load_img(char *filename)
 	img->offset = 0;
 
 	/* Get filename from command prompt */
-	int fnsize = strlen(ACD) + strlen(filename) + 1;
+	int fnsize = strlen(filename) + 1;
 	img->fullpath = malloc(fnsize);
-	snprintf(img->fullpath, fnsize, ACD "%s", filename);
+	snprintf(img->fullpath, fnsize, "%s", filename);
 
 	/* Exists ? Readable ? */
 	if (access(img->fullpath, R_OK) == -1) {

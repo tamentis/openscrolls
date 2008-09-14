@@ -1,12 +1,18 @@
-Those are very gory sources. If you want to help, you are highly welcome ;)
+ OpenScrolls
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Change ACD in openscrolls.h to the appropriate path for Daggerfall CD. This
-is ugly, but keep in mind it's dev pre-alpha unstable ;)
+Yes, this whole source tree is ugly. It's a mix match of different
+languages and is not really doing anything useful.
 
-To build type make. To install type make install. Yeah.
+So here is what you'll find in this:
 
-TODO:
- - Add binding to PageUp/PageDown on the SkyViewer
- - Add font support to display text (what sky you are watching).
+openscrolls_imgviewer - image viewer
+openscrolls_menu - fake starting menu
+openscrolls_skyviewer.py - sky viewer (SKY* files)
+openscrolls_monster.py - monster reader (MONSTER.BSA file)
 
+This is better than the last version (2 years ago), at least you don't
+have to update 3 constants before using it ;)
+
+Good luck!
 
