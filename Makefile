@@ -1,7 +1,7 @@
 ## Makefile for OpenScrolls
 ## 
 
-VERSION=0.0.1
+VERSION=0.2.0
 
 CFLAGS=`sdl-config --cflags`
 LIBFLAGS=`sdl-config --libs`
@@ -10,13 +10,8 @@ DEST=/usr/local/bin
 
 VIEWER=openscrolls_imgviewer
 MENU=openscrolls_menu
-SKYVIEW=skyview
 
 all: $(VIEWER) $(MENU) $(SKYVIEW)
-
-SKYVIEW_OBJECTS=skyviewer.o openscroll.o strlcpy.o
-$(SKYVIEW): $(SKYVIEW_OBJECTS)
-	$(CC) $(OPTIONS) $(SKYVIEW_OBJECTS) $(LIBFLAGS) -o $(SKYVIEW)
 
 IMGVIEWER_OBJECTS=imgviewer.o openscroll.o strlcpy.o
 $(VIEWER): $(IMGVIEWER_OBJECTS)
@@ -30,7 +25,7 @@ $(MENU): $(MENU_OBJECTS)
 	$(CC) $(OPTIONS) $(CFLAGS) -c $<
 
 clean:
-	rm -f $(VIEWER) $(MENU) $(SKYVIEW) *.o
+	rm -f $(VIEWER) $(MENU) $(SKYVIEW) *.o *.pyc
 
 install:
 	install -m 755 $(VIEWER) $(DEST)
