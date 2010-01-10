@@ -1,21 +1,23 @@
+#!/usr/bin/python
+
 import os
 import sys
 import struct
 
 import bsa
-import casttype
+import daggerfall.casttypes as casttypes
 
 
 class Tolerance():
     def __init__(self, byte):
 
-        self.toParalysis = bool(byte & casttype.Paralysis)
-        self.toMagic = bool(byte & casttype.Magic)
-        self.toPoison = bool(byte & casttype.Poison)
-        self.toFire = bool(byte & casttype.Poison)
-        self.toFrost = bool(byte & casttype.Frost)
-        self.toShock = bool(byte & casttype.Shock)
-        self.toDisease = bool(byte & casttype.Shock)
+        self.toParalysis = bool(byte & casttypes.PARALYSIS)
+        self.toMagic = bool(byte & casttypes.MAGIC)
+        self.toPoison = bool(byte & casttypes.POISON)
+        self.toFire = bool(byte & casttypes.POISON)
+        self.toFrost = bool(byte & casttypes.FROST)
+        self.toShock = bool(byte & casttypes.SHOCK)
+        self.toDisease = bool(byte & casttypes.SHOCK)
 
     def toString(self):
         a = [ ]

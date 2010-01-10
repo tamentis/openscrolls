@@ -2,8 +2,6 @@ import os
 import sys
 import struct
 
-
-
 TypeDescription = {
     0x0100: {
         'Text': 'with filenames',

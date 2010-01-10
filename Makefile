@@ -8,8 +8,8 @@ LIBFLAGS=`sdl-config --libs`
 OPTIONS=-g -O2 -Wall -DOSCROLLVER=\"$(VERSION)\" 
 DEST=/usr/local/bin
 
-VIEWER=openscrolls_imgviewer
-MENU=openscrolls_menu
+VIEWER=imgviewer
+MENU=menu
 
 all: $(VIEWER) $(MENU) $(SKYVIEW)
 

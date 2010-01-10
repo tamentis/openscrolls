@@ -1,3 +1,12 @@
-OpenScrolls v0.0.1
-==================
-	- Initial "release" (ha ha ha)
+openscrolls-0.3.0
+ - added book reader
+ - added start of a library with book, pages, fonts, glyphs
+ - added font viewer
+
+openscrolls-0.2.0
+ - added skyviewer in python + pygame
+ - added listmonsters in python + pygame
+ - added unbsa in python
+
+openscrolls-0.0.1
+ - Initial "release" (ha ha ha)

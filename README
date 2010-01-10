@@ -1,18 +1,16 @@
- OpenScrolls
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+openscrolls
 
 Yes, this whole source tree is ugly. It's a mix match of different
 languages and is not really doing anything useful.
 
 So here is what you'll find in this:
 
-openscrolls_imgviewer - image viewer
-openscrolls_menu - fake starting menu
-openscrolls_skyviewer.py - sky viewer (SKY* files)
-openscrolls_monster.py - monster reader (MONSTER.BSA file)
-
-This is better than the last version (2 years ago), at least you don't
-have to update 3 constants before using it ;)
+    imgviewer       - image viewer, written in C with SDL
+    menu            - fake starting menu, in C with SDL
+    skyviewer.py    - sky viewer (SKY* files), Python + PyGame
+    list_monster.py - monster reader (MONSTER.BSA file), Python + PyGame
+    book_reader.py  - book reader, Python (Tkinter)
+    font_viewer.py  - font view, Python (Tkinter)
 
 Good luck!
 
