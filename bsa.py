@@ -33,7 +33,7 @@ class BSARecord():
 class BSAFile():
     def __init__(self, filename):
         try:
-            self.file = open(filename, 'r')
+            self.file = open(filename, 'rb')
         except:
             raise
 
@@ -68,7 +68,7 @@ class BSAFile():
             self.file.seek(rec.offset)
             data = self.file.read(rec.size)
             print 'Extracting "%s" (%d bytes)...' % (filename, rec.size)
-            fw = open(filename, 'w')
+            fw = open(filename, 'wb')
             fw.write(data);
             fw.close()
 
